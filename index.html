@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>120天财商课程总览 - 贾童童专属</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --card-bg: #1e293b;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --accent1: #f59e0b;
+    --accent2: #3b82f6;
+    --accent3: #10b981;
+    --accent4: #8b5cf6;
+    --accent5: #ef4444;
+    --accent6: #06b6d4;
+    --tag-bg: rgba(255,255,255,0.06);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 40px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 2rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent1), var(--accent6)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { color: var(--text-muted); margin-bottom: 32px; font-size: 0.95rem; }
+  
+  .stats-row {
+    display: flex; gap: 16px; margin-bottom: 36px; flex-wrap: wrap;
+  }
+  .stat-card {
+    background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 20px; min-width: 140px; flex: 1;
+  }
+  .stat-card .num { font-size: 1.8rem; font-weight: 700; }
+  .stat-card .label { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+  
+  .part {
+    margin-bottom: 36px;
+    border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden;
+    background: var(--card-bg);
+  }
+  .part-header {
+    padding: 18px 24px;
+    cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .part-header:hover { background: rgba(255,255,255,0.03); }
+  .part-header h2 { font-size: 1.2rem; }
+  .part-header .part-tag {
+    font-size: 0.8rem; padding: 3px 12px; border-radius: 20px;
+    font-weight: 500;
+  }
+  
+  .days-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 6px; padding: 16px 20px; }
+  .day-cell {
+    aspect-ratio: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 600;
+    border-radius: 8px;
+    cursor: default;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .day-cell:hover {
+    transform: scale(1.15);
+    z-index: 10;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .day-cell .tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a2e;
+    color: #e2e8f0;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    border: 1px solid var(--border);
+    pointer-events: none;
+    z-index: 20;
+  }
+  .day-cell:hover .tooltip { display: block; }
+  
+  .day-title-list { padding: 12px 20px 16px; display: none; }
+  .part.expanded .day-title-list { display: block; }
+  .day-title-list .day-row {
+    display: flex; align-items: baseline; padding: 6px 8px;
+    border-radius: 6px; transition: background 0.15s;
+    font-size: 0.88rem;
+  }
+  .day-title-list .day-row:hover { background: rgba(255,255,255,0.04); }
+  .day-title-list .day-num {
+    font-weight: 700; font-size: 0.78rem;
+    min-width: 56px; opacity: 0.7;
+  }
+  .day-title-list .day-name { flex: 1; }
+  
+  .color-1 { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .color-2 { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .color-3 { background: rgba(16,185,129,0.15); color: #34d399; }
+  .color-4 { background: rgba(139,92,246,0.15); color: #a78bfa; }
+  .color-5 { background: rgba(239,68,68,0.15); color: #f87171; }
+  .color-6 { background: rgba(6,182,212,0.15); color: #22d3ee; }
+  
+  .tag-1 { background: rgba(245,158,11,0.2); color: #fbbf24; }
+  .tag-2 { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .tag-3 { background: rgba(16,185,129,0.2); color: #34d399; }
+  .tag-4 { background: rgba(139,92,246,0.2); color: #a78bfa; }
+  .tag-5 { background: rgba(239,68,68,0.2); color: #f87171; }
+  .tag-6 { background: rgba(6,182,212,0.2); color: #22d3ee; }
+  
+  .sub-section { padding: 8px 20px 4px; }
+  .sub-section h3 {
+    font-size: 0.9rem; color: var(--text-muted);
+    padding: 8px 0 4px; border-top: 1px dashed var(--border);
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1>📚 财商启蒙 & 金融知识深度学习课程</h1>
+<div class="subtitle">120天从零到进阶 · 每天早8点企业微信推送 · 贾童童专属</div>
+
+<div class="stats-row">
+  <div class="stat-card"><div class="num" style="color:#fbbf24;">120</div><div class="label">总天数</div></div>
+  <div class="stat-card"><div class="num" style="color:#60a5fa;">6</div><div class="label">大模块</div></div>
+  <div class="stat-card"><div class="num" style="color:#34d399;">10</div><div class="label">真实公司案例</div></div>
+  <div class="stat-card"><div class="num" style="color:#a78bfa;">6</div><div class="label">行业深度专题</div></div>
+  <div class="stat-card"><div class="num" style="color:#22d3ee;">4</div><div class="label">可选进阶方向</div></div>
+</div>
+
+<!-- Part 1 -->
+<div class="part expanded" id="part1">
+<div class="part-header" onclick="togglePart('part1')">
+  <div>
+    <span class="part-tag tag-1">第一部分</span>
+    <h2 style="display:inline; margin-left:12px;">金融世界观——从零开始建立认知</h2>
+    <span style="color:var(--text-muted); margin-left:10px; font-size:0.85rem;">Day 1 — 15</span>
+  </div>
+  <span id="part1-icon" style="font-size:1.2rem;">▾</span>
+</div>
+<div class="days-grid">
+  <div class="day-cell color-1"><span class="tooltip">Day 01<br>货币本质</span>1</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 02<br>货币进化史</span>2</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 03<br>通货膨胀</span>3</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 04<br>利率</span>4</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 05<br>公司的本质</span>5</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 06<br>读懂公司</span>6</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 07<br>什么是股票</span>7</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 08<br>股票市场</span>8</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 09<br>投资vs投机</span>9</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 10<br>复利的威力</span>10</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 11<br>资产vs负债</span>11</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 12<br>财务自由</span>12</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 13<br>现金流管理</span>13</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 14<br>风险概念</span>14</div>
+  <div class="day-cell color-1"><span class="tooltip">Day 15<br>阶段小结</span>15</div>
+</div>
+<div class="day-title-list">
+<div class="day-row"><span class="day-num color-1">Day 01</span><span class="day-name">你手里的100块钱到底是什么？——货币的本质</span></div>
+<div class="day-row"><span class="day-num color-1">Day 02</span><span class="day-name">货币的进化史——从贝壳到比特币</span></div>
+<div class="day-row"><span class="day-num color-1">Day 03</span><span class="day-name">通货膨胀——为什么你的钱越来越不值钱</span></div>
+<div class="day-row"><span class="day-num color-1">Day 04</span><span class="day-name">利率——一切资产定价的锚</span></div>
+<div class="day-row"><span class="day-num color-1">Day 05</span><span class="day-name">什么是公司？（上）——公司的本质</span></div>
+<div class="day-row"><span class="day-num color-1">Day 06</span><span class="day-name">什么是公司？（下）——如何读懂一家公司</span></div>
+<div class="day-row"><span class="day-num color-1">Day 07</span><span class="day-name">什么是股票？——你买的到底是个什么东西</span></div>
+<div class="day-row"><span class="day-num color-1">Day 08</span><span class="day-name">股票市场是怎么运转的</span></div>
+<div class="day-row"><span class="day-num color-1">Day 09</span><span class="day-name">什么是投资？什么是投机？区别在哪</span></div>
+<div class="day-row"><span class="day-num color-1">Day 10</span><span class="day-name">复利的威力——第八大奇迹</span></div>
+<div class="day-row"><span class="day-num color-1">Day 11</span><span class="day-name">资产 vs 负债——富人思维的分水岭</span></div>
+<div class="day-row"><span class="day-num color-1">Day 12</span><span class="day-name">财务自由——真正的含义和路径</span></div>
+<div class="day-row"><span class="day-num color-1">Day 13</span><span class="day-name">现金流管理——管好你的钱水管</span></div>
+<div class="day-row"><span class="day-num color-1">Day 14</span><span class="day-name">风险——投资中最重要却被最常忽略的概念</span></div>
+<div class="day-row"><span class="day-num color-1">Day 15</span><span class="day-name">第一阶段小结 + 建立你的财务健康度量表</span></div>
+</div>
+</div>
+
+<!-- Part 2 -->
+<div class="part" id="part2">
+<div class="part-header" onclick="togglePart('part2')">
+  <div>
+    <span class="part-tag tag-2">第二部分</span>
+    <h2 style="display:inline; margin-left:12px;">大师智慧——顶级投资者的思维模型</h2>
+    <span style="color:var(--text-muted); margin-left:10px; font-size:0.85rem;">Day 16 — 35</span>
+  </div>
+  <span id="part2-icon" style="font-size:1.2rem;">▸</span>
+</div>
+<div class="days-grid">
+  <div class="day-cell color-2"><span class="tooltip">Day 16<br>格雷厄姆</span>16</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 17<br>巴菲特</span>17</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 18<br>查理·芒格</span>18</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 19<br>彼得·林奇</span>19</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 20<br>雷·达里奥</span>20</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 21<br>霍华德·马克斯</span>21</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 22<br>凯利公式上</span>22</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 23<br>凯利公式下</span>23</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 24<br>索罗斯</span>24</div>
+  <div class="day-cell color-2"><span class="tooltip">Day 25<br>大师对比</span>25</div>
+  <div class="day-cell color-2" style="grid-column:span 2; border:2px dashed #60a5fa;"><span class="tooltip">Day 26-35<br>10天实战</span>26-35</div>
+</div>
+<div class="day-title-list">
+<div class="sub-section"><h3>🔬 投资大师思想（10天）</h3></div>
+<div class="day-row"><span class="day-num color-2">Day 16</span><span class="day-name">本杰明·格雷厄姆——价值投资之父（安全边际、"市场先生"）</span></div>
+<div class="day-row"><span class="day-num color-2">Day 17</span><span class="day-name">沃伦·巴菲特——复利之神（护城河、能力圈、好公司+好价格）</span></div>
+<div class="day-row"><span class="day-num color-2">Day 18</span><span class="day-name">查理·芒格——多元思维模型（反过来想、人类误判心理学）</span></div>
+<div class="day-row"><span class="day-num color-2">Day 19</span><span class="day-name">彼得·林奇——最亲民的基金经理（生活选股法、六类公司分类）</span></div>
+<div class="day-row"><span class="day-num color-2">Day 20</span><span class="day-name">雷·达里奥——宏观对冲之王（经济机器、债务周期、全天候策略）</span></div>
+<div class="day-row"><span class="day-num color-2">Day 21</span><span class="day-name">霍华德·马克斯——周期的洞察者（钟摆理论、第二层思维）</span></div>
+<div class="day-row"><span class="day-num color-2">Day 22</span><span class="day-name">凯利公式——数学告诉你该押多少（上）</span></div>
+<div class="day-row"><span class="day-num color-2">Day 23</span><span class="day-name">凯利公式——数学告诉你该押多少（下）+ 仓位管理实战</span></div>
+<div class="day-row"><span class="day-num color-2">Day 24</span><span class="day-name">乔治·索罗斯——反身性与做空大师</span></div>
+<div class="day-row"><span class="day-num color-2">Day 25</span><span class="day-name">大师思想对比——找到适合你的投资哲学</span></div>
+<div class="sub-section"><h3>🏭 10天实战：用大师眼光分析真实公司</h3></div>
+<div class="day-row"><span class="day-num color-2">Day 26</span><span class="day-name">贵州茅台——巴菲特眼中的"完美公司"</span></div>
+<div class="day-row"><span class="day-num color-2">Day 27</span><span class="day-name">腾讯控股——护城河有多深</span></div>
+<div class="day-row"><span class="day-num color-2">Day 28</span><span class="day-name">比亚迪——新能源汽车的护城河</span></div>
+<div class="day-row"><span class="day-num color-2">Day 29</span><span class="day-name">招商银行——银行股怎么分析</span></div>
+<div class="day-row"><span class="day-num color-2">Day 30</span><span class="day-name">宁德时代——成长股的典型样本</span></div>
+<div class="day-row"><span class="day-num color-2">Day 31</span><span class="day-name">中国平安——综合金融集团</span></div>
+<div class="day-row"><span class="day-num color-2">Day 32</span><span class="day-name">长江电力——"现金奶牛"的标本</span></div>
+<div class="day-row"><span class="day-num color-2">Day 33</span><span class="day-name">美团——互联网平台的护城河与隐忧</span></div>
+<div class="day-row"><span class="day-num color-2">Day 34</span><span class="day-name">黄金——避险资产还是投机泡沫</span></div>
+<div class="day-row"><span class="day-num color-2">Day 35</span><span class="day-name">大师实战总结——建立你自己的分析框架</span></div>
+</div>
+</div>
+
+<!-- Part 3 -->
+<div class="part" id="part3">
+<div class="part-header" onclick="togglePart('part3')">
+  <div>
+    <span class="part-tag tag-3">第三部分</span>
+    <h2 style="display:inline; margin-left:12px;">投资工具箱——从理论到落地</h2>
+    <span style="color:var(--text-muted); margin-left:10px; font-size:0.85rem;">Day 36 — 45</span>
+  </div>
+  <span id="part3-icon" style="font-size:1.2rem;">▸</span>
+</div>
+<div class="days-grid">
+  <div class="day-cell color-3"><span class="tooltip">Day 36<br>基金</span>36</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 37<br>ETF</span>37</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 38<br>债券</span>38</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 39<br>REITs</span>39</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 40<br>可转债</span>40</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 41<br>货币基金</span>41</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 42<br>QDII</span>42</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 43<br>基金定投</span>43</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 44<br>开户交易</span>44</div>
+  <div class="day-cell color-3"><span class="tooltip">Day 45<br>工具小结</span>45</div>
+</div>
+<div class="day-title-list">
+<div class="day-row"><span class="day-num color-3">Day 36</span><span class="day-name">基金——最适合普通人的投资工具</span></div>
+<div class="day-row"><span class="day-num color-3">Day 37</span><span class="day-name">指数基金与ETF——巴菲特推荐的投资工具（深度版）</span></div>
+<div class="day-row"><span class="day-num color-3">Day 38</span><span class="day-name">债券——被低估的压舱石</span></div>
+<div class="day-row"><span class="day-num color-3">Day 39</span><span class="day-name">REITs——普通人当房东</span></div>
+<div class="day-row"><span class="day-num color-3">Day 40</span><span class="day-name">可转债——下有保底上不封顶</span></div>
+<div class="day-row"><span class="day-num color-3">Day 41</span><span class="day-name">货币基金与银行理财——现金管理工具</span></div>
+<div class="day-row"><span class="day-num color-3">Day 42</span><span class="day-name">QDII基金——把眼光投向全球</span></div>
+<div class="day-row"><span class="day-num color-3">Day 43</span><span class="day-name">基金定投——最适合上班族的策略（深度版）</span></div>
+<div class="day-row"><span class="day-num color-3">Day 44</span><span class="day-name">开户与交易实务——从理论到操作的桥梁</span></div>
+<div class="day-row"><span class="day-num color-3">Day 45</span><span class="day-name">工具篇小结——打造你的投资工具箱</span></div>
+</div>
+</div>
+
+<!-- Part 4 -->
+<div class="part" id="part4">
+<div class="part-header" onclick="togglePart('part4')">
+  <div>
+    <span class="part-tag tag-4">第四部分</span>
+    <h2 style="display:inline; margin-left:12px;">分析与决策——从看懂到看透</h2>
+    <span style="color:var(--text-muted); margin-left:10px; font-size:0.85rem;">Day 46 — 75</span>
+  </div>
+  <span id="part4-icon" style="font-size:1.2rem;">▸</span>
+</div>
+<div class="days-grid">
+  <div class="day-cell color-4"><span class="tooltip">Day 46<br>K线</span>46</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 47<br>均线趋势</span>47</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 48<br>成交量</span>48</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 49<br>MACD/RSI</span>49</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 50<br>财务报表</span>50</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 51<br>财务指标</span>51</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 52<br>估值方法</span>52</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 53<br>GDP/CPI/PMI</span>53</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 54<br>货币政策</span>54</div>
+  <div class="day-cell color-4"><span class="tooltip">Day 55<br>行业分析</span>55</div>
+  <div class="day-cell color-4" style="grid-column:span 2; border:2px dashed #a78bfa;"><span class="tooltip">Day 56-65<br>六行业深度</span>56-65</div>
+  <div class="day-cell color-4" style="grid-column:span 2; border:2px dashed #a78bfa;"><span class="tooltip">Day 66-75<br>综合实战</span>66-75</div>
+</div>
+<div class="day-title-list">
+<div class="sub-section"><h3>📊 技术分析（4天）</h3></div>
+<div class="day-row"><span class="day-num color-4">Day 46</span><span class="day-name">技术分析（一）——K线语言</span></div>
+<div class="day-row"><span class="day-num color-4">Day 47</span><span class="day-name">技术分析（二）——均线与趋势</span></div>
+<div class="day-row"><span class="day-num color-4">Day 48</span><span class="day-name">技术分析（三）——成交量与资金流向</span></div>
+<div class="day-row"><span class="day-num color-4">Day 49</span><span class="day-name">技术分析（四）——MACD与RSI</span></div>
+<div class="sub-section"><h3>📈 基本面分析（3天）</h3></div>
+<div class="day-row"><span class="day-num color-4">Day 50</span><span class="day-name">基本面分析（一）——三大财务报表入门</span></div>
+<div class="day-row"><span class="day-num color-4">Day 51</span><span class="day-name">基本面分析（二）——关键财务指标深度解读</span></div>
+<div class="day-row"><span class="day-num color-4">Day 52</span><span class="day-name">基本面分析（三）——估值方法（PE/PB/PS/DCF等）</span></div>
+<div class="sub-section"><h3>🌍 宏观与行业（3天）</h3></div>
+<div class="day-row"><span class="day-num color-4">Day 53</span><span class="day-name">宏观经济（一）——GDP、CPI、PMI</span></div>
+<div class="day-row"><span class="day-num color-4">Day 54</span><span class="day-name">宏观经济（二）——货币政策与财政政策</span></div>
+<div class="day-row"><span class="day-num color-4">Day 55</span><span class="day-name">行业分析框架——如何挑选好赛道</span></div>
+<div class="sub-section"><h3>🏢 六大核心行业深度拆解（10天）</h3></div>
+<div class="day-row"><span class="day-num color-4">Day 56</span><span class="day-name">消费（上）——必选消费：吃穿住行离不开的生意</span></div>
+<div class="day-row"><span class="day-num color-4">Day 57</span><span class="day-name">消费（下）——可选消费：有钱才花的行业</span></div>
+<div class="day-row"><span class="day-num color-4">Day 58</span><span class="day-name">科技（上）——半导体：中国制造的"卡脖子"突破口</span></div>
+<div class="day-row"><span class="day-num color-4">Day 59</span><span class="day-name">科技（下）——AI、软件与互联网</span></div>
+<div class="day-row"><span class="day-num color-4">Day 60</span><span class="day-name">医药医疗——永远的朝阳行业</span></div>
+<div class="day-row"><span class="day-num color-4">Day 61</span><span class="day-name">新能源与制造——政策驱动的高成长赛道</span></div>
+<div class="day-row"><span class="day-num color-4">Day 62</span><span class="day-name">金融——银行、保险、券商的赚钱逻辑</span></div>
+<div class="day-row"><span class="day-num color-4">Day 63</span><span class="day-name">周期品——大宗商品、资源、农业的周期密码</span></div>
+<div class="day-row"><span class="day-num color-4">Day 64</span><span class="day-name">军工与国企改革——国家队的力量</span></div>
+<div class="day-row"><span class="day-num color-4">Day 65</span><span class="day-name">行业分析总结 + 行业配置策略</span></div>
+<div class="sub-section"><h3>🧠 综合实战（10天）</h3></div>
+<div class="day-row"><span class="day-num color-4">Day 66</span><span class="day-name">行为金融学——投资中的人性弱点</span></div>
+<div class="day-row"><span class="day-num color-4">Day 67</span><span class="day-name">资产配置——投资中唯一的免费午餐</span></div>
+<div class="day-row"><span class="day-num color-4">Day 68</span><span class="day-name">风险管理实操手册</span></div>
+<div class="day-row"><span class="day-num color-4">Day 69</span><span class="day-name">投资计划制定与执行</span></div>
+<div class="day-row"><span class="day-num color-4">Day 70</span><span class="day-name">读财报实战——10分钟快速扫描一家公司</span></div>
+<div class="day-row"><span class="day-num color-4">Day 71</span><span class="day-name">信息素养——如何获取和处理投资信息</span></div>
+<div class="day-row"><span class="day-num color-4">Day 72</span><span class="day-name">时事专题：当前A股市场状态诊断</span></div>
+<div class="day-row"><span class="day-num color-4">Day 73</span><span class="day-name">时事专题：全球市场动态</span></div>
+<div class="day-row"><span class="day-num color-4">Day 74</span><span class="day-name">时事专题：行业热点跟踪</span></div>
+<div class="day-row"><span class="day-num color-4">Day 75</span><span class="day-name">时事专题：本月财经大事记 + 下月展望</span></div>
+</div>
+</div>
+
+<!-- Part 5 -->
+<div class="part" id="part5">
+<div class="part-header" onclick="togglePart('part5')">
+  <div>
+    <span class="part-tag tag-5">第五部分</span>
+    <h2 style="display:inline; margin-left:12px;">综合实战——从知识到财富</h2>
+    <span style="color:var(--text-muted); margin-left:10px; font-size:0.85rem;">Day 76 — 95</span>
+  </div>
+  <span id="part5-icon" style="font-size:1.2rem;">▸</span>
+</div>
+<div class="days-grid">
+  <div class="day-cell color-5"><span class="tooltip">Day 76<br>投资心理</span>76</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 77<br>日记复盘</span>77</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 78<br>长期主义</span>78</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 79<br>经典书籍上</span>79</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 80<br>经典书籍下</span>80</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 81<br>投资体系</span>81</div>
+  <div class="day-cell color-5" style="grid-column:span 2; border:2px dashed #f87171;"><span class="tooltip">Day 82-91<br>模拟组合</span>82-91</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 92<br>税务</span>92</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 93<br>保险规划</span>93</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 94<br>家庭财务</span>94</div>
+  <div class="day-cell color-5"><span class="tooltip">Day 95<br>AI时代</span>95</div>
+</div>
+<div class="day-title-list">
+<div class="day-row"><span class="day-num color-5">Day 76</span><span class="day-name">投资心理学——克服贪婪与恐惧</span></div>
+<div class="day-row"><span class="day-num color-5">Day 77</span><span class="day-name">投资日记与复盘方法论</span></div>
+<div class="day-row"><span class="day-num color-5">Day 78</span><span class="day-name">长期主义的实践指南</span></div>
+<div class="day-row"><span class="day-num color-5">Day 79</span><span class="day-name">投资经典书籍导读（上）——10本必读书</span></div>
+<div class="day-row"><span class="day-num color-5">Day 80</span><span class="day-name">投资经典书籍导读（下）——进阶书单</span></div>
+<div class="day-row"><span class="day-num color-5">Day 81</span><span class="day-name">建立你的投资体系——从模仿到独创</span></div>
+<div class="sub-section"><h3>💰 10天模拟投资组合构建</h3></div>
+<div class="day-row"><span class="day-num color-5">Day 82</span><span class="day-name">Step 1：确定投资目标和约束条件</span></div>
+<div class="day-row"><span class="day-num color-5">Day 83</span><span class="day-name">Step 2：选择核心持仓（"主力部队"）</span></div>
+<div class="day-row"><span class="day-num color-5">Day 84</span><span class="day-name">Step 3：选择卫星持仓（"特种部队"）</span></div>
+<div class="day-row"><span class="day-num color-5">Day 85</span><span class="day-name">Step 4：防御性资产配置（"后勤保障"）</span></div>
+<div class="day-row"><span class="day-num color-5">Day 86</span><span class="day-name">Step 5：确定各标的的具体仓位和买入节奏</span></div>
+<div class="day-row"><span class="day-num color-5">Day 87</span><span class="day-name">Step 6：设定风控规则</span></div>
+<div class="day-row"><span class="day-num color-5">Day 88</span><span class="day-name">Step 7：启动模拟（用虚拟资金运行1-3个月）</span></div>
+<div class="day-row"><span class="day-num color-5">Day 89</span><span class="day-name">Step 8：第一次复盘（运行2-4周后）</span></div>
+<div class="day-row"><span class="day-num color-5">Day 90</span><span class="day-name">Step 9：第二次复盘与调整（运行2-3个月后）</span></div>
+<div class="day-row"><span class="day-num color-5">Day 91</span><span class="day-name">Step 10：从模拟走向实战（小资金实盘启动）</span></div>
+<div class="sub-section"><h3>🏠 生活与投资（4天）</h3></div>
+<div class="day-row"><span class="day-num color-5">Day 92</span><span class="day-name">税务基础知识——投资相关的税</span></div>
+<div class="day-row"><span class="day-num color-5">Day 93</span><span class="day-name">遗产规划与保险配置进阶</span></div>
+<div class="day-row"><span class="day-num color-5">Day 94</span><span class="day-name">家庭财务沟通与共同决策</span></div>
+<div class="day-row"><span class="day-num color-5">Day 95</span><span class="day-name">AI时代的新机遇与新挑战</span></div>
+</div>
+</div>
+
+
+<!-- Part 6 -->
+<div class="part" id="part6">
+<div class="part-header" onclick="togglePart('part6')">
+  <div>
+    <span class="part-tag tag-6">第六部分</span>
+    <h2 style="display:inline; margin-left:12px;">进阶与终身学习</h2>
+    <span style="color:var(--text-muted); margin-left:10px; font-size:0.85rem;">Day 96 — 120+</span>
+  </div>
+  <span id="part6-icon" style="font-size:1.2rem;">▸</span>
+</div>
+<div class="days-grid">
+  <div class="day-cell color-6" style="grid-column:span 2; border:2px dashed #22d3ee;"><span class="tooltip">Day 96-105<br>深化模块</span>96-105</div>
+  <div class="day-cell color-6" style="grid-column:span 2; border:2px dashed #22d3ee;"><span class="tooltip">Day 106-120<br>毕业&终身</span>106-120+</div>
+</div>
+<div class="day-title-list">
+<div class="sub-section"><h3>🎯 深化模块——四个可选方向（10天）</h3></div>
+<div class="day-row"><span class="day-num color-6">A</span><span class="day-name">方向A：深度价值投资（像巴菲特一样买股票）</span></div>
+<div class="day-row"><span class="day-num color-6">B</span><span class="day-name">方向B：成长股投资（找10倍股的方法论）</span></div>
+<div class="day-row"><span class="day-num color-6">C</span><span class="day-name">方向C：量化与系统化交易入门（数据驱动决策）</span></div>
+<div class="day-row"><span class="day-num color-6">D</span><span class="day-name">方向D：全球宏观配置（放眼全球资产）</span></div>
+<div class="sub-section"><h3>🎓 毕业设计与终身学习（15天）</h3></div>
+<div class="day-row"><span class="day-num color-6">Day 106</span><span class="day-name">120天学习成果总复习</span></div>
+<div class="day-row"><span class="day-num color-6">Day 107</span><span class="day-name">你的专属投资体系定型</span></div>
+<div class="day-row"><span class="day-num color-6">Day 108-114</span><span class="day-name">【毕业考试】连续7天实时案例分析</span></div>
+<div class="day-row"><span class="day-num color-6">Day 115</span><span class="day-name">毕业典礼 + 终身学习路径图</span></div>
+<div class="day-row"><span class="day-num color-6">Days 116-120</span><span class="day-name">进入"每日财经速递"模式——持续跟踪市场</span></div>
+</div>
+</div>
+
+<div style="margin-top:40px; padding:20px; background:var(--card-bg); border:1px solid var(--border); border-radius:12px;">
+  <h3 style="margin-bottom:12px; font-size:1rem;">📋 课程附录</h3>
+  <div style="color:var(--text-muted); font-size:0.9rem;">
+    <p>附录A：常用速查表（估值指标、技术指标、财务数据网站等）</p>
+    <p>附录B：推荐资源清单（书籍、网站、播客、投资社区）</p>
+  </div>
+</div>
+
+<script>
+function togglePart(id) {
+  document.getElementById(id).classList.toggle('expanded');
+  var icon = document.getElementById(id+'-icon');
+  icon.textContent = document.getElementById(id).classList.contains('expanded') ? '▾' : '▸';
+}
+</script>
+
+</body>
+</html>
