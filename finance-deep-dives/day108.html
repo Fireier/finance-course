@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day 108 | 【毕业考试】连续7天实时案例分析</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0a0a1a;
+  color: #d4d4dc;
+  line-height: 1.75;
+  padding: 20px;
+  min-height: 100vh;
+}
+.container { max-width: 720px; margin: 0 auto; }
+
+/* ===== 阶段色 ===== */
+:root {
+  --c: #ef4444;
+  --c-dim: rgba(239,68,68,0.12);
+  --c-light: #fca5a5;
+  --c-border: rgba(239,68,68,0.18);
+}
+
+/* ===== 顶部条 ===== */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border-radius: 8px; margin-bottom: 16px;
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  font-size: 11px;
+}
+.top-bar .phase { color: var(--c-light); font-weight: 600; }
+.top-bar .day { color: #666; }
+.progress-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin: 0 12px; }
+.progress-fill { height: 100%; border-radius: 2px; background: var(--c); width: 90.0%; }
+
+/* ===== Header ===== */
+.header {
+  text-align: center; padding: 36px 20px 28px; border-radius: 16px; margin-bottom: 20px;
+  background: linear-gradient(135deg, #1a1010, #201010);
+  border: 1px solid var(--c-border);
+}
+.header .icon { font-size: 50px; display: block; margin-bottom: 8px; }
+.header h1 { font-size: 27px; color: #fff; font-weight: 800; margin-bottom: 4px; }
+.header .sub { font-size: 14px; color: #888; }
+
+/* ===== TL;DR ===== */
+.tldr {
+  background: linear-gradient(135deg, rgba(234,179,8,0.08), rgba(251,191,36,0.03));
+  border: 1px solid rgba(234,179,8,0.15); border-radius: 10px;
+  padding: 14px 18px; margin-bottom: 20px;
+}
+.tldr .label { font-size: 10px; font-weight: 700; color: #eab308; letter-spacing: 1px; margin-bottom: 4px; }
+.tldr p { font-size: 15px; font-weight: 600; color: #fde68a; }
+
+/* ===== 核心知识 ===== */
+.section { margin-bottom: 18px; }
+.section-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  color: var(--c-light); margin-bottom: 10px; text-transform: uppercase;
+}
+.k-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 18px 20px; margin-bottom: 8px;
+  background: var(--c-dim); border-radius: 10px;
+  border-left: 3px solid var(--c);
+  transition: all 0.2s;
+}
+.k-card:hover { background: rgba(255,255,255,0.04); transform: translateX(2px); }
+.k-num {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; border-radius: 6px;
+  background: rgba(255,255,255,0.05); color: var(--c-light);
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.k-text { font-size: 14.5px; line-height: 1.7; flex: 1; }
+.k-text strong { color: #e8e2ff; }
+
+/* ===== 今日行动 ===== */
+.action {
+  background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(16,185,129,0.03));
+  border: 1px solid rgba(52,211,153,0.15); border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 28px; text-align: center;
+}
+.action .act-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 8px;
+  background: rgba(52,211,153,0.15); color: #6ee7b7;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px;
+}
+.action .act-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.action .act-sub { font-size: 13px; color: #999; }
+
+/* ===== 分隔线 ===== */
+.divider {
+  text-align: center; margin: 24px 0; color: #444; font-size: 11px;
+  letter-spacing: 2px;
+}
+.divider::before,
+.divider::after {
+  content: ''; display: inline-block; width: 60px; height: 1px;
+  background: rgba(255,255,255,0.08); vertical-align: middle; margin: 0 12px;
+}
+
+/* ===== 思考练习 ===== */
+.think-item {
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 10px;
+}
+.think-item .ti-num {
+  display: inline-block; font-size: 10px; font-weight: 700; color: #fbbf24;
+  background: rgba(251,191,36,0.12); padding: 2px 8px; border-radius: 4px;
+  margin-bottom: 6px; letter-spacing: 1px;
+}
+.think-item .ti-q { font-size: 14.5px; font-weight: 600; color: #fbbf24; margin-bottom: 6px; }
+.think-item .ti-ans {
+  margin-top: 8px; padding: 12px 14px; border-radius: 8px;
+  background: rgba(251,191,36,0.06); font-size: 13px; color: #ccc;
+  max-height: 2000px; overflow: hidden;
+}
+.show-btn {
+  font-size: 12px; cursor: pointer; user-select: none;
+  text-decoration: underline; color: #fbbf24; display: inline-block; margin-top: 4px;
+}
+
+/* ===== 扩展学习：资源链接 ===== */
+.link-list { list-style: none; padding: 0; }
+.link-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-bottom: 6px;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 8px; transition: all 0.15s;
+}
+.link-item:hover { background: var(--c-dim); }
+.link-icon { font-size: 16px; flex-shrink: 0; }
+.link-info { flex: 1; min-width: 0; }
+.link-info .link-title { font-size: 14px; color: #fff; font-weight: 500; }
+.link-info .link-desc { font-size: 12px; color: #666; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center; padding: 24px 0; color: #444; font-size: 11px;
+}
+.footer .next { color: var(--c-light); }
+
+/* ===== 周期性复习 ===== */
+.review-section {
+  margin: 32px 0 20px; padding: 20px 22px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(139,92,246,0.03));
+  border: 2px solid rgba(168,85,247,0.2);
+}
+.review-section .rev-header {
+  text-align: center; margin-bottom: 16px;
+}
+.review-section .rev-icon { font-size: 32px; display: block; margin-bottom: 4px; }
+.review-section .rev-title {
+  font-size: 18px; font-weight: 800; color: #c4b5fd;
+}
+.review-section .rev-sub { font-size: 12px; color: #888; margin-top: 2px; }
+.review-quiz {
+  background: rgba(168,85,247,0.06); border-radius: 8px;
+  padding: 14px 18px; margin-bottom: 12px;
+  border-left: 3px solid rgba(168,85,247,0.5);
+}
+.review-quiz .qz-label {
+  font-size: 10px; font-weight: 700; color: #a78bfa; letter-spacing: 1px; margin-bottom: 6px;
+}
+.review-quiz .qz-q { font-size: 14px; color: #e9d5ff; font-weight: 600; margin-bottom: 6px; }
+.review-quiz .qz-a { font-size: 13px; color: #aaa; line-height: 1.7; }
+.review-map {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0;
+}
+.review-map .map-chip {
+  padding: 4px 10px; border-radius: 10px;
+  background: rgba(168,85,247,0.1); color: #c4b5fd;
+  font-size: 11px; font-weight: 500; border: 1px solid rgba(168,85,247,0.15);
+}
+.review-connect {
+  margin-top: 12px; padding: 12px 16px;
+  background: rgba(255,255,255,0.02); border-radius: 8px;
+  font-size: 13.5px; color: #ccc; line-height: 1.7;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="top-bar">
+  <span class="phase">第五阶段 · 毕业与终身学习</span>
+  <div class="progress-bar"><div class="progress-fill"></div></div>
+  <span class="day">108 / 120</span>
+</div>
+
+<div class="header">
+  <span class="icon">🎯</span>
+  <h1>【毕业考试】连续7天实时案例分析</h1>
+  <div class="sub">⏱ 约 5 分钟 &nbsp;·&nbsp; 总结 · 复盘 · 投资体系 · 终身学习</div>
+</div>
+
+<div class="tldr">
+  <div class="label">💡 一句话总结</div>
+  <p>每天选取一只当前热门/有代表性的公司或市场现象 要求用120天学到的所有知识和框架进行全面分析 模拟"专业分析师"的工作产出。</p>
+</div>
+
+<div class="section">
+  <div class="section-title">🔑 核心知识</div>
+  <div class="k-card">
+    <span class="k-num">01</span>
+    <span class="k-text">每天选取一只当前热门/有代表性的公司或市场现象 要求用120天学到的所有知识和框架进行全面分析 模拟"专业分析师"的工作产出</span>
+  </div>
+</div>
+
+<div class="action">
+  <div class="act-badge">🎯 今日行动 · 3 分钟</div>
+  <div class="act-title">选一只当前热门股票，用120天学到的全部知识做一次完整分析——像专业分析师一样产出一份报告</div>
+  <div class="act-sub">今天就动手，别等明天</div>
+</div>
+
+<div class="divider">以下内容 可选</div>
+
+<div class="section">
+  <div class="section-title">🤔 思考与练习</div>
+  <div class="think-item">
+    <span class="ti-num">思考 01</span>
+    <div class="ti-q">选一个你今天分析的公司，用200字以内总结你的分析结论——这就是电梯演讲训练。</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看解析</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>思考框架（试试这三步）：</strong><br><br>
+① <strong>回忆知识：</strong>不看上面的内容，用你自己的话复述今天学到的核心概念（关键词：每天选取一只当前热门/有代表性的公司或市场现象 要求用120...）<br>
+② <strong>找一个例子：</strong>找一个例子：用五力分析加财务三表加估值方法加行业判断加风险评估的完整框架分析一家公司——感受框架的力量，你会发现以前看不出来的东西现在一目了然<br>
+③ <strong>形成行动：</strong>形成行动：把你的分析报告保存下来——这是你120天学习的毕业作品，也是你未来投资决策的模板<br><br>
+<em>把答案写下来。明天回看，你会发现写得怎么样不重要，重要的是你的思考路径被记录了下来。</em>
+    </div>
+  </div>
+  <div class="think-item">
+    <span class="ti-num">练习 02</span>
+    <div class="ti-q">回顾这120天，你最大的三个认知变化是什么？写下来。</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看提示</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>元认知：</strong>知道"自己知道什么、不知道什么"比知道"具体某个知识点"更重要。这是120天课程最重要的收获之一。
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">📚 扩展学习</div>
+  <ul class="link-list">
+    <li class="link-item" onclick="window.open('https://zhuanlan.zhihu.com/p/1943305644640800901','_blank')" style="cursor:pointer;" title="点击打开: https://zhuanlan.zhihu.com/p/1943305644640800901">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">毕业考试说明：连续7天实时案例分析</div>
+        <div class="link-desc">自建·考试指导</div>
+      </div>
+    </li>
+    <li class="link-item" onclick="window.open('https://zhuanlan.zhihu.com/p/404481642','_blank')" style="cursor:pointer;" title="点击打开: https://zhuanlan.zhihu.com/p/404481642">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">如何做公司案例分析？框架与方法</div>
+        <div class="link-desc">知乎·分析方法</div>
+      </div>
+    </li>
+    <li class="link-item" onclick="window.open('https://xueqiu.com/4171267348/363861583','_blank')" style="cursor:pointer;" title="点击打开: https://xueqiu.com/4171267348/363861583">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">投资案例分析的5个维度</div>
+        <div class="link-desc">雪球·分析框架</div>
+      </div>
+    </li>
+  </ul>
+</div><div class="footer">
+  <p>财商深度学习计划 · 第五阶段 · 毕业与终身学习</p>
+  <p>明日预告：<span class="next">Day 109 毕业考试 Day1：消费行业案例分析</span></p>
+</div>
+
+</div>
+</body>
+</html>
