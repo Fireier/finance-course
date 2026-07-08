@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day 22 | 凯利公式——数学告诉你该押多少（上）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0a0a1a;
+  color: #d4d4dc;
+  line-height: 1.75;
+  padding: 20px;
+  min-height: 100vh;
+}
+.container { max-width: 720px; margin: 0 auto; }
+
+/* ===== 阶段色 ===== */
+:root {
+  --c: #8b5cf6;
+  --c-dim: rgba(139,92,246,0.12);
+  --c-light: #c4b5fd;
+  --c-border: rgba(139,92,246,0.18);
+}
+
+/* ===== 顶部条 ===== */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border-radius: 8px; margin-bottom: 16px;
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  font-size: 11px;
+}
+.top-bar .phase { color: var(--c-light); font-weight: 600; }
+.top-bar .day { color: #666; }
+.progress-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin: 0 12px; }
+.progress-fill { height: 100%; border-radius: 2px; background: var(--c); width: 18.33%; }
+
+/* ===== Header ===== */
+.header {
+  text-align: center; padding: 36px 20px 28px; border-radius: 16px; margin-bottom: 20px;
+  background: linear-gradient(135deg, #1a1035, #1e1040);
+  border: 1px solid var(--c-border);
+}
+.header .icon { font-size: 50px; display: block; margin-bottom: 8px; }
+.header h1 { font-size: 27px; color: #fff; font-weight: 800; margin-bottom: 4px; }
+.header .sub { font-size: 14px; color: #888; }
+
+/* ===== TL;DR ===== */
+.tldr {
+  background: linear-gradient(135deg, rgba(234,179,8,0.08), rgba(251,191,36,0.03));
+  border: 1px solid rgba(234,179,8,0.15); border-radius: 10px;
+  padding: 14px 18px; margin-bottom: 20px;
+}
+.tldr .label { font-size: 10px; font-weight: 700; color: #eab308; letter-spacing: 1px; margin-bottom: 4px; }
+.tldr p { font-size: 15px; font-weight: 600; color: #fde68a; }
+
+/* ===== 核心知识 ===== */
+.section { margin-bottom: 18px; }
+.section-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  color: var(--c-light); margin-bottom: 10px; text-transform: uppercase;
+}
+.k-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 18px 20px; margin-bottom: 8px;
+  background: var(--c-dim); border-radius: 10px;
+  border-left: 3px solid var(--c);
+  transition: all 0.2s;
+}
+.k-card:hover { background: rgba(255,255,255,0.04); transform: translateX(2px); }
+.k-num {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; border-radius: 6px;
+  background: rgba(255,255,255,0.05); color: var(--c-light);
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.k-text { font-size: 14.5px; line-height: 1.7; flex: 1; }
+.k-text strong { color: #e8e2ff; }
+
+/* ===== 今日行动 ===== */
+.action {
+  background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(16,185,129,0.03));
+  border: 1px solid rgba(52,211,153,0.15); border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 28px; text-align: center;
+}
+.action .act-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 8px;
+  background: rgba(52,211,153,0.15); color: #6ee7b7;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px;
+}
+.action .act-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.action .act-sub { font-size: 13px; color: #999; }
+
+/* ===== 分隔线 ===== */
+.divider {
+  text-align: center; margin: 24px 0; color: #444; font-size: 11px;
+  letter-spacing: 2px;
+}
+.divider::before,
+.divider::after {
+  content: ''; display: inline-block; width: 60px; height: 1px;
+  background: rgba(255,255,255,0.08); vertical-align: middle; margin: 0 12px;
+}
+
+/* ===== 思考练习 ===== */
+.think-item {
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 10px;
+}
+.think-item .ti-num {
+  display: inline-block; font-size: 10px; font-weight: 700; color: #fbbf24;
+  background: rgba(251,191,36,0.12); padding: 2px 8px; border-radius: 4px;
+  margin-bottom: 6px; letter-spacing: 1px;
+}
+.think-item .ti-q { font-size: 14.5px; font-weight: 600; color: #fbbf24; margin-bottom: 6px; }
+.think-item .ti-ans {
+  margin-top: 8px; padding: 12px 14px; border-radius: 8px;
+  background: rgba(251,191,36,0.06); font-size: 13px; color: #ccc;
+  max-height: 2000px; overflow: hidden;
+}
+.show-btn {
+  font-size: 12px; cursor: pointer; user-select: none;
+  text-decoration: underline; color: #fbbf24; display: inline-block; margin-top: 4px;
+}
+
+/* ===== 扩展学习：资源链接 ===== */
+.link-list { list-style: none; padding: 0; }
+.link-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-bottom: 6px;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 8px; transition: all 0.15s;
+}
+.link-item:hover { background: var(--c-dim); }
+.link-icon { font-size: 16px; flex-shrink: 0; }
+.link-info { flex: 1; min-width: 0; }
+.link-info .link-title { font-size: 14px; color: #fff; font-weight: 500; }
+.link-info .link-desc { font-size: 12px; color: #666; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center; padding: 24px 0; color: #444; font-size: 11px;
+}
+.footer .next { color: var(--c-light); }
+
+/* ===== 周期性复习 ===== */
+.review-section {
+  margin: 32px 0 20px; padding: 20px 22px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(139,92,246,0.03));
+  border: 2px solid rgba(168,85,247,0.2);
+}
+.review-section .rev-header {
+  text-align: center; margin-bottom: 16px;
+}
+.review-section .rev-icon { font-size: 32px; display: block; margin-bottom: 4px; }
+.review-section .rev-title {
+  font-size: 18px; font-weight: 800; color: #c4b5fd;
+}
+.review-section .rev-sub { font-size: 12px; color: #888; margin-top: 2px; }
+.review-quiz {
+  background: rgba(168,85,247,0.06); border-radius: 8px;
+  padding: 14px 18px; margin-bottom: 12px;
+  border-left: 3px solid rgba(168,85,247,0.5);
+}
+.review-quiz .qz-label {
+  font-size: 10px; font-weight: 700; color: #a78bfa; letter-spacing: 1px; margin-bottom: 6px;
+}
+.review-quiz .qz-q { font-size: 14px; color: #e9d5ff; font-weight: 600; margin-bottom: 6px; }
+.review-quiz .qz-a { font-size: 13px; color: #aaa; line-height: 1.7; }
+.review-map {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0;
+}
+.review-map .map-chip {
+  padding: 4px 10px; border-radius: 10px;
+  background: rgba(168,85,247,0.1); color: #c4b5fd;
+  font-size: 11px; font-weight: 500; border: 1px solid rgba(168,85,247,0.15);
+}
+.review-connect {
+  margin-top: 12px; padding: 12px 16px;
+  background: rgba(255,255,255,0.02); border-radius: 8px;
+  font-size: 13.5px; color: #ccc; line-height: 1.7;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="top-bar">
+  <span class="phase">第一阶段 · 金融世界观基础</span>
+  <div class="progress-bar"><div class="progress-fill"></div></div>
+  <span class="day">22 / 120</span>
+</div>
+
+<div class="header">
+  <span class="icon">⚡</span>
+  <h1>凯利公式——数学告诉你该押多少（上）</h1>
+  <div class="sub">⏱ 约 12 分钟 &nbsp;·&nbsp; 凯利公式 · 仓位管理 · 概率 · 赔率</div>
+</div>
+
+<div class="tldr">
+  <div class="label">💡 一句话总结</div>
+  <p>凯利公式的伟大之处在于它用数学解决了"到底该买多少"这个困扰所有投资者的终极难题。它告诉你：即使是一件好事，做太多了也会变成坏事。</p>
+</div>
+
+<div class="section">
+  <div class="section-title">🔑 核心知识</div>
+  <div class="k-card">
+    <span class="k-num">01</span>
+    <span class="k-text">什么是凯利公式？由约翰·凯利（John L. Kelly Jr.）在1956年提出，最初用于电信工程的信号噪声优化，后被爱德华·索普（Edward Thorp，数学家+职业赌徒+量化对冲基金经理）发现其在投资和赌博中的巨大价值</span>
+  </div>
+  <div class="k-card">
+    <span class="k-num">02</span>
+    <span class="k-text">p = 胜率（赢的概率，如60%则p=0.6） q = 输的概率 = 1-p 如果胜率>50% 且赔率合理 → 凯利公式告诉你应该积极下注 如果胜率<50% → 凯利公式告诉你应该不下注（f为负数=不应该参与）</span>
+  </div>
+  <div class="k-card">
+    <span class="k-num">03</span>
+    <span class="k-text"><strong>更清晰的例子：</strong>55%概率赢100%（b=1），45%概率输100% f = (0.55×1 - 0.45)/1 = 0.1 = 10% 结论：你应该用总资金的10%来参与 半凯利（Half-Kelly）策略：</span>
+  </div>
+  <div class="k-card">
+    <span class="k-num">04</span>
+    <span class="k-text"><strong>专业投资者通常采用半凯利甚至四分之一凯利（Quarter-Kelly） 这样牺牲了一些长期增长速率，但大幅降低了中途破产的风险 对普通投资者强烈推荐：</strong>永远不要超过半凯利</span>
+  </div>
+  <div class="k-card">
+    <span class="k-num">05</span>
+    <span class="k-text"><strong>再试一个：</strong>55%概率翻倍（b=1），45%概率全亏（q=0.45，亏100%所以b视为无穷大...实际上这里应该用净亏损比例来计算）</span>
+  </div>
+</div>
+
+<div class="action">
+  <div class="act-badge">🎯 今日行动 · 3 分钟</div>
+  <div class="act-title">找一家你熟悉的公司，估算它未来3年的利润增长，用PEG等于PE除以增长率看看估值是否合理</div>
+  <div class="act-sub">今天就动手，别等明天</div>
+</div>
+
+<div class="divider">以下内容 可选</div>
+
+<div class="section">
+  <div class="section-title">🤔 思考与练习</div>
+  <div class="think-item">
+    <span class="ti-num">思考 01</span>
+    <div class="ti-q">假设你发现了一个"稳赚"的机会——80%概率赚20%，20%概率亏10%。用凯利公式算一下你应该用总资金的百分之多少来投入？</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看解析</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>思考框架（试试这三步）：</strong><br><br>
+① <strong>回忆知识：</strong>不看上面的内容，用你自己的话复述今天学到的核心概念（关键词：什么是凯利公式？由约翰·凯利（John L. Kelly J...）<br>
+② <strong>找一个例子：</strong>找一个例子：两家公司PE都是30，一家增长率10%，一家增长率30%——用PEG判断哪个更便宜？这跟单纯比PE有什么不同？<br>
+③ <strong>形成行动：</strong>形成行动：在选股清单里加一列PEG——以后比较同行业公司时，PEG比PE更能反映成长性价比<br><br>
+<em>把答案写下来。明天回看，你会发现写得怎么样不重要，重要的是你的思考路径被记录了下来。</em>
+    </div>
+  </div>
+  <div class="think-item">
+    <span class="ti-num">练习 02</span>
+    <div class="ti-q">选一家你熟悉的公司，用今天学到的大师思维框架快速分析一下：它的护城河是什么？</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看提示</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>提示：</strong>不需要覆盖所有维度。抓住最核心的1-2点就够了。如果你在3分钟内想不出这家公司的护城河，那它可能就没有护城河——这本身就是一个重要发现。
+    </div>
+  </div>
+  <div class="think-item">
+    <span class="ti-num">练习 03</span>
+    <div class="ti-q">今天的大师如果有10万现金，在当前市场环境下他会怎么做？写下你的推测。</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看提示</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>这个练习的目的是让你"换位思考"：</strong>不是让你去猜大师的具体操作，而是训练你用他们的思维模型来审视当前市场。每个人的答案都会不同，没有对错。
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">📚 扩展学习</div>
+  <ul class="link-list">
+    <li class="link-item" onclick="window.open('https://zhuanlan.zhihu.com/p/106911283','_blank')" style="cursor:pointer;" title="点击打开: https://zhuanlan.zhihu.com/p/106911283">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">凯利公式：数学告诉你该押多少（上）</div>
+        <div class="link-desc">知乎·数学投资</div>
+      </div>
+    </li>
+    <li class="link-item" onclick="window.open('https://www.zhihu.com/question/635968057/answer/3338379562','_blank')" style="cursor:pointer;" title="点击打开: https://www.zhihu.com/question/635968057/answer/3338379562">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">凯利公式详解：投资仓位管理的数学基础</div>
+        <div class="link-desc">知乎·量化入门</div>
+      </div>
+    </li>
+    <li class="link-item" onclick="window.open('https://xueqiu.com/2833481624/347864924','_blank')" style="cursor:pointer;" title="点击打开: https://xueqiu.com/2833481624/347864924">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">凯利公式在投资中的实际应用</div>
+        <div class="link-desc">雪球·投资者实战</div>
+      </div>
+    </li>
+  </ul>
+</div><div class="footer">
+  <p>财商深度学习计划 · 第一阶段 · 金融世界观基础</p>
+  <p>明日预告：<span class="next">Day 23 凯利公式——数学告诉你该押多少（下）</span></p>
+</div>
+
+</div>
+</body>
+</html>
