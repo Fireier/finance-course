@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day 06 | 什么是公司？（下）——如何读懂一家公司</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0a0a1a;
+  color: #d4d4dc;
+  line-height: 1.75;
+  padding: 20px;
+  min-height: 100vh;
+}
+.container { max-width: 720px; margin: 0 auto; }
+
+/* ===== 阶段色 ===== */
+:root {
+  --c: #8b5cf6;
+  --c-dim: rgba(139,92,246,0.12);
+  --c-light: #c4b5fd;
+  --c-border: rgba(139,92,246,0.18);
+}
+
+/* ===== 顶部条 ===== */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border-radius: 8px; margin-bottom: 16px;
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  font-size: 11px;
+}
+.top-bar .phase { color: var(--c-light); font-weight: 600; }
+.top-bar .day { color: #666; }
+.progress-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin: 0 12px; }
+.progress-fill { height: 100%; border-radius: 2px; background: var(--c); width: 5.0%; }
+
+/* ===== Header ===== */
+.header {
+  text-align: center; padding: 36px 20px 28px; border-radius: 16px; margin-bottom: 20px;
+  background: linear-gradient(135deg, #1a1035, #1e1040);
+  border: 1px solid var(--c-border);
+}
+.header .icon { font-size: 50px; display: block; margin-bottom: 8px; }
+.header h1 { font-size: 27px; color: #fff; font-weight: 800; margin-bottom: 4px; }
+.header .sub { font-size: 14px; color: #888; }
+
+/* ===== TL;DR ===== */
+.tldr {
+  background: linear-gradient(135deg, rgba(234,179,8,0.08), rgba(251,191,36,0.03));
+  border: 1px solid rgba(234,179,8,0.15); border-radius: 10px;
+  padding: 14px 18px; margin-bottom: 20px;
+}
+.tldr .label { font-size: 10px; font-weight: 700; color: #eab308; letter-spacing: 1px; margin-bottom: 4px; }
+.tldr p { font-size: 15px; font-weight: 600; color: #fde68a; }
+
+/* ===== 核心知识 ===== */
+.section { margin-bottom: 18px; }
+.section-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  color: var(--c-light); margin-bottom: 10px; text-transform: uppercase;
+}
+.k-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 18px 20px; margin-bottom: 8px;
+  background: var(--c-dim); border-radius: 10px;
+  border-left: 3px solid var(--c);
+  transition: all 0.2s;
+}
+.k-card:hover { background: rgba(255,255,255,0.04); transform: translateX(2px); }
+.k-num {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; border-radius: 6px;
+  background: rgba(255,255,255,0.05); color: var(--c-light);
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.k-text { font-size: 14.5px; line-height: 1.7; flex: 1; }
+.k-text strong { color: #e8e2ff; }
+
+/* ===== 今日行动 ===== */
+.action {
+  background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(16,185,129,0.03));
+  border: 1px solid rgba(52,211,153,0.15); border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 28px; text-align: center;
+}
+.action .act-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 8px;
+  background: rgba(52,211,153,0.15); color: #6ee7b7;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px;
+}
+.action .act-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.action .act-sub { font-size: 13px; color: #999; }
+
+/* ===== 分隔线 ===== */
+.divider {
+  text-align: center; margin: 24px 0; color: #444; font-size: 11px;
+  letter-spacing: 2px;
+}
+.divider::before,
+.divider::after {
+  content: ''; display: inline-block; width: 60px; height: 1px;
+  background: rgba(255,255,255,0.08); vertical-align: middle; margin: 0 12px;
+}
+
+/* ===== 思考练习 ===== */
+.think-item {
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 10px;
+}
+.think-item .ti-num {
+  display: inline-block; font-size: 10px; font-weight: 700; color: #fbbf24;
+  background: rgba(251,191,36,0.12); padding: 2px 8px; border-radius: 4px;
+  margin-bottom: 6px; letter-spacing: 1px;
+}
+.think-item .ti-q { font-size: 14.5px; font-weight: 600; color: #fbbf24; margin-bottom: 6px; }
+.think-item .ti-ans {
+  margin-top: 8px; padding: 12px 14px; border-radius: 8px;
+  background: rgba(251,191,36,0.06); font-size: 13px; color: #ccc;
+  max-height: 2000px; overflow: hidden;
+}
+.show-btn {
+  font-size: 12px; cursor: pointer; user-select: none;
+  text-decoration: underline; color: #fbbf24; display: inline-block; margin-top: 4px;
+}
+
+/* ===== 扩展学习：资源链接 ===== */
+.link-list { list-style: none; padding: 0; }
+.link-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-bottom: 6px;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 8px; transition: all 0.15s;
+}
+.link-item:hover { background: var(--c-dim); }
+.link-icon { font-size: 16px; flex-shrink: 0; }
+.link-info { flex: 1; min-width: 0; }
+.link-info .link-title { font-size: 14px; color: #fff; font-weight: 500; }
+.link-info .link-desc { font-size: 12px; color: #666; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center; padding: 24px 0; color: #444; font-size: 11px;
+}
+.footer .next { color: var(--c-light); }
+
+/* ===== 周期性复习 ===== */
+.review-section {
+  margin: 32px 0 20px; padding: 20px 22px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(139,92,246,0.03));
+  border: 2px solid rgba(168,85,247,0.2);
+}
+.review-section .rev-header {
+  text-align: center; margin-bottom: 16px;
+}
+.review-section .rev-icon { font-size: 32px; display: block; margin-bottom: 4px; }
+.review-section .rev-title {
+  font-size: 18px; font-weight: 800; color: #c4b5fd;
+}
+.review-section .rev-sub { font-size: 12px; color: #888; margin-top: 2px; }
+.review-quiz {
+  background: rgba(168,85,247,0.06); border-radius: 8px;
+  padding: 14px 18px; margin-bottom: 12px;
+  border-left: 3px solid rgba(168,85,247,0.5);
+}
+.review-quiz .qz-label {
+  font-size: 10px; font-weight: 700; color: #a78bfa; letter-spacing: 1px; margin-bottom: 6px;
+}
+.review-quiz .qz-q { font-size: 14px; color: #e9d5ff; font-weight: 600; margin-bottom: 6px; }
+.review-quiz .qz-a { font-size: 13px; color: #aaa; line-height: 1.7; }
+.review-map {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0;
+}
+.review-map .map-chip {
+  padding: 4px 10px; border-radius: 10px;
+  background: rgba(168,85,247,0.1); color: #c4b5fd;
+  font-size: 11px; font-weight: 500; border: 1px solid rgba(168,85,247,0.15);
+}
+.review-connect {
+  margin-top: 12px; padding: 12px 16px;
+  background: rgba(255,255,255,0.02); border-radius: 8px;
+  font-size: 13.5px; color: #ccc; line-height: 1.7;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="top-bar">
+  <span class="phase">第一阶段 · 金融世界观基础</span>
+  <div class="progress-bar"><div class="progress-fill"></div></div>
+  <span class="day">6 / 120</span>
+</div>
+
+<div class="header">
+  <span class="icon">💎</span>
+  <h1>什么是公司？（下）——如何读懂一家公司</h1>
+  <div class="sub">⏱ 约 15 分钟 &nbsp;·&nbsp; 投资 · 理财 · 财商</div>
+</div>
+
+<div class="tldr">
+  <div class="label">💡 一句话总结</div>
+  <p>投资股票本质上就是在投资公司——你买的不是一张代码，而是这家公司未来所有利润的一小份权利。</p>
+</div>
+
+<div class="section">
+  <div class="section-title">🔑 核心知识</div>
+  <div class="k-card">
+    <span class="k-num">01</span>
+    <span class="k-text"><strong>不同行业的"好公司"标准完全不同：</strong> 科技行业：研发能力 + 产品迭代速度（华为 vs 其他手机厂商） 消费行业：品牌力 + 渠道掌控（茅台 vs 二线白酒） 制造业：成本控制 + 规模效应（比亚迪的新能源车规模降本） 金融业：风控能力 + 资产质量（招商银行 vs 某些小银行） 如何快速了解一家公司（5分钟入门法）： 1. 上网搜它的官网 → 看主营业务介绍 2. 看它的前十大股东是谁（聪明钱在不在？） 3. 看近3年的营收和利润趋势（在涨还是在跌？） 4. 看它在新闻里最近发生了什么事 5. 问自己一个问题："如果我有10个亿，我会买下这家公司吗？"</span>
+  </div>
+  <div class="k-card">
+    <span class="k-num">02</span>
+    <span class="k-text"><strong>判断一家公司好坏的三个维度：</strong> ①赚钱能力：赚不赚钱？赚多少？赚得稳不稳定？ ②成长性：是在变好还是在走下坡路？市场空间还有多大？ ③护城河：竞争对手能不能轻易复制它的成功？</span>
+  </div>
+  <div class="k-card">
+    <span class="k-num">03</span>
+    <span class="k-text"><strong>初创期（0-3年）：死亡率极高（90%以上的创业公司活不过3年）。</strong>高风险高回报——如果能上市早期投资人可能赚几十倍</span>
+  </div>
+  <div class="k-card">
+    <span class="k-num">04</span>
+    <span class="k-text"><strong>成长期（3-10年）：</strong>业务快速扩张，营收高速增长但往往还没稳定盈利（如现在的AI初创公司）</span>
+  </div>
+  <div class="k-card">
+    <span class="k-num">05</span>
+    <span class="k-text"><strong>衰退期：</strong>市场萎缩、技术被颠覆、管理僵化——需要转型否则走向消亡（如诺基亚手机业务）</span>
+  </div>
+</div>
+
+<div class="action">
+  <div class="act-badge">🎯 今日行动 · 3 分钟</div>
+  <div class="act-title">找一家你每天打交道却不了解它商业模式的公司，10秒内说清它怎么赚钱</div>
+  <div class="act-sub">今天就动手，别等明天</div>
+</div>
+
+<div class="divider">以下内容 可选</div>
+
+<div class="section">
+  <div class="section-title">🤔 思考与练习</div>
+  <div class="think-item">
+    <span class="ti-num">思考 01</span>
+    <div class="ti-q">用上面教的5分钟法，挑一家你感兴趣的公司试试。你能说出它的主营业务吗？</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看解析</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>思考框架（试试这三步）：</strong><br><br>
+① <strong>回忆知识：</strong>不看上面的内容，用你自己的话复述今天学到的核心概念（关键词：不同行业的"好公司"标准完全不同： 科技行业：研发能力 + ...）<br>
+② <strong>找一个例子：</strong>从你日常消费中找一个例子——比如你用的手机、喝的饮料、存钱的银行——把理论和它联系起来<br>
+③ <strong>形成行动：</strong>今天就开始记账——不记账的人很难真正理解现金流从哪里来、到哪里去<br><br>
+<em>把答案写下来。明天回看，你会发现写得怎么样不重要，重要的是你的思考路径被记录了下来。</em>
+    </div>
+  </div>
+  <div class="think-item">
+    <span class="ti-num">练习 02</span>
+    <div class="ti-q">用你自己的话说一遍今天学到的核心概念——不要看书，凭记忆复述。</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看提示</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>费曼学习法：</strong>如果你不能简单地解释一个概念，说明你还没真正理解它。试着用5岁小孩都能听懂的话重新讲一遍。
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">📚 扩展学习</div>
+  <ul class="link-list">
+    <li class="link-item" onclick="window.open('https://zhuanlan.zhihu.com/p/1951022066947032889','_blank')" style="cursor:pointer;" title="点击打开: https://zhuanlan.zhihu.com/p/1951022066947032889">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">终于有人把财务三大表讲清楚了！</div>
+        <div class="link-desc">知乎·零基础入门</div>
+      </div>
+    </li>
+    <li class="link-item" onclick="window.open('https://baijiahao.baidu.com/s?id=1841215678462310162','_blank')" style="cursor:pointer;" title="点击打开: https://baijiahao.baidu.com/s?id=1841215678462310162">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">大白话讲解如何看懂三大财务报表</div>
+        <div class="link-desc">百家号·长文收藏</div>
+      </div>
+    </li>
+    <li class="link-item" onclick="window.open('https://emcreative.eastmoney.com/Fortune/V/Share_ArticleDetail/20201219192627516228640','_blank')" style="cursor:pointer;" title="点击打开: https://emcreative.eastmoney.com/Fortune/V/Share_ArticleDetail/20201219192627516228640">
+      <span class="link-icon">🎬</span>
+      <div class="link-info">
+        <div class="link-title">手把手教你读懂财务报表</div>
+        <div class="link-desc">东方财富·图解教程</div>
+      </div>
+    </li>
+  </ul>
+</div><div class="footer">
+  <p>财商深度学习计划 · 第一阶段 · 金融世界观基础</p>
+  <p>明日预告：<span class="next">Day 07 什么是股票？——你买的到底是个什么东西</span></p>
+</div>
+
+</div>
+</body>
+</html>

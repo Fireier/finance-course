@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Day 57 | 行业深度：消费（下）——可选消费</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0a0a1a;
+  color: #d4d4dc;
+  line-height: 1.75;
+  padding: 20px;
+  min-height: 100vh;
+}
+.container { max-width: 720px; margin: 0 auto; }
+
+/* ===== 阶段色 ===== */
+:root {
+  --c: #3b82f6;
+  --c-dim: rgba(59,130,246,0.12);
+  --c-light: #93c5fd;
+  --c-border: rgba(59,130,246,0.18);
+}
+
+/* ===== 顶部条 ===== */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; border-radius: 8px; margin-bottom: 16px;
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  font-size: 11px;
+}
+.top-bar .phase { color: var(--c-light); font-weight: 600; }
+.top-bar .day { color: #666; }
+.progress-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; margin: 0 12px; }
+.progress-fill { height: 100%; border-radius: 2px; background: var(--c); width: 47.5%; }
+
+/* ===== Header ===== */
+.header {
+  text-align: center; padding: 36px 20px 28px; border-radius: 16px; margin-bottom: 20px;
+  background: linear-gradient(135deg, #0f172a, #101f3a);
+  border: 1px solid var(--c-border);
+}
+.header .icon { font-size: 50px; display: block; margin-bottom: 8px; }
+.header h1 { font-size: 27px; color: #fff; font-weight: 800; margin-bottom: 4px; }
+.header .sub { font-size: 14px; color: #888; }
+
+/* ===== TL;DR ===== */
+.tldr {
+  background: linear-gradient(135deg, rgba(234,179,8,0.08), rgba(251,191,36,0.03));
+  border: 1px solid rgba(234,179,8,0.15); border-radius: 10px;
+  padding: 14px 18px; margin-bottom: 20px;
+}
+.tldr .label { font-size: 10px; font-weight: 700; color: #eab308; letter-spacing: 1px; margin-bottom: 4px; }
+.tldr p { font-size: 15px; font-weight: 600; color: #fde68a; }
+
+/* ===== 核心知识 ===== */
+.section { margin-bottom: 18px; }
+.section-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 1px;
+  color: var(--c-light); margin-bottom: 10px; text-transform: uppercase;
+}
+.k-card {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 18px 20px; margin-bottom: 8px;
+  background: var(--c-dim); border-radius: 10px;
+  border-left: 3px solid var(--c);
+  transition: all 0.2s;
+}
+.k-card:hover { background: rgba(255,255,255,0.04); transform: translateX(2px); }
+.k-num {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; border-radius: 6px;
+  background: rgba(255,255,255,0.05); color: var(--c-light);
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.k-text { font-size: 14.5px; line-height: 1.7; flex: 1; }
+.k-text strong { color: #e8e2ff; }
+
+/* ===== 今日行动 ===== */
+.action {
+  background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(16,185,129,0.03));
+  border: 1px solid rgba(52,211,153,0.15); border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 28px; text-align: center;
+}
+.action .act-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 8px;
+  background: rgba(52,211,153,0.15); color: #6ee7b7;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px;
+}
+.action .act-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.action .act-sub { font-size: 13px; color: #999; }
+
+/* ===== 分隔线 ===== */
+.divider {
+  text-align: center; margin: 24px 0; color: #444; font-size: 11px;
+  letter-spacing: 2px;
+}
+.divider::before,
+.divider::after {
+  content: ''; display: inline-block; width: 60px; height: 1px;
+  background: rgba(255,255,255,0.08); vertical-align: middle; margin: 0 12px;
+}
+
+/* ===== 思考练习 ===== */
+.think-item {
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 10px;
+}
+.think-item .ti-num {
+  display: inline-block; font-size: 10px; font-weight: 700; color: #fbbf24;
+  background: rgba(251,191,36,0.12); padding: 2px 8px; border-radius: 4px;
+  margin-bottom: 6px; letter-spacing: 1px;
+}
+.think-item .ti-q { font-size: 14.5px; font-weight: 600; color: #fbbf24; margin-bottom: 6px; }
+.think-item .ti-ans {
+  margin-top: 8px; padding: 12px 14px; border-radius: 8px;
+  background: rgba(251,191,36,0.06); font-size: 13px; color: #ccc;
+  max-height: 2000px; overflow: hidden;
+}
+.show-btn {
+  font-size: 12px; cursor: pointer; user-select: none;
+  text-decoration: underline; color: #fbbf24; display: inline-block; margin-top: 4px;
+}
+
+/* ===== 扩展学习：资源链接 ===== */
+.link-list { list-style: none; padding: 0; }
+.link-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; margin-bottom: 6px;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 8px; transition: all 0.15s;
+}
+.link-item:hover { background: var(--c-dim); }
+.link-icon { font-size: 16px; flex-shrink: 0; }
+.link-info { flex: 1; min-width: 0; }
+.link-info .link-title { font-size: 14px; color: #fff; font-weight: 500; }
+.link-info .link-desc { font-size: 12px; color: #666; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center; padding: 24px 0; color: #444; font-size: 11px;
+}
+.footer .next { color: var(--c-light); }
+
+/* ===== 周期性复习 ===== */
+.review-section {
+  margin: 32px 0 20px; padding: 20px 22px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(139,92,246,0.03));
+  border: 2px solid rgba(168,85,247,0.2);
+}
+.review-section .rev-header {
+  text-align: center; margin-bottom: 16px;
+}
+.review-section .rev-icon { font-size: 32px; display: block; margin-bottom: 4px; }
+.review-section .rev-title {
+  font-size: 18px; font-weight: 800; color: #c4b5fd;
+}
+.review-section .rev-sub { font-size: 12px; color: #888; margin-top: 2px; }
+.review-quiz {
+  background: rgba(168,85,247,0.06); border-radius: 8px;
+  padding: 14px 18px; margin-bottom: 12px;
+  border-left: 3px solid rgba(168,85,247,0.5);
+}
+.review-quiz .qz-label {
+  font-size: 10px; font-weight: 700; color: #a78bfa; letter-spacing: 1px; margin-bottom: 6px;
+}
+.review-quiz .qz-q { font-size: 14px; color: #e9d5ff; font-weight: 600; margin-bottom: 6px; }
+.review-quiz .qz-a { font-size: 13px; color: #aaa; line-height: 1.7; }
+.review-map {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0;
+}
+.review-map .map-chip {
+  padding: 4px 10px; border-radius: 10px;
+  background: rgba(168,85,247,0.1); color: #c4b5fd;
+  font-size: 11px; font-weight: 500; border: 1px solid rgba(168,85,247,0.15);
+}
+.review-connect {
+  margin-top: 12px; padding: 12px 16px;
+  background: rgba(255,255,255,0.02); border-radius: 8px;
+  font-size: 13.5px; color: #ccc; line-height: 1.7;
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="top-bar">
+  <span class="phase">第三阶段 · 投资工具箱</span>
+  <div class="progress-bar"><div class="progress-fill"></div></div>
+  <span class="day">57 / 120</span>
+</div>
+
+<div class="header">
+  <span class="icon">🛡</span>
+  <h1>行业深度：消费（下）——可选消费</h1>
+  <div class="sub">⏱ 约 10 分钟 &nbsp;·&nbsp; 消费行业 · 白酒 · 品牌力 · 定价权</div>
+</div>
+
+<div class="tldr">
+  <div class="label">💡 一句话总结</div>
+  <p>可选消费 = 经济好时才愿意多花的（家电/汽车/旅游/餐饮/服饰/珠宝/免税） 特征：弹性大（经济好时暴涨，经济差时暴跌）→ 周期性明显 家电（白色家电/黑色家。</p>
+</div>
+
+<div class="section">
+  <div class="section-title">🔑 核心知识</div>
+  <div class="k-card">
+    <span class="k-num">01</span>
+    <span class="k-text"><strong>可选消费 = 经济好时才愿意多花的（家电/汽车/旅游/餐饮/服饰/珠宝/免税） 特征：</strong>弹性大（经济好时暴涨，经济差时暴跌）→ 周期性明显 家电（白色家电/黑色家电/厨电）： 白电（空调/冰箱/洗衣机）：格局清晰（格力/海尔/美的三足鼎立）→ 成熟稳定 黑电（电视/音响）：已被创新颠覆（手机取代了很多功能）→ 日渐萎缩 厨电/小家电：品牌分散→竞争激烈但创新活跃 汽车（整车/零部件/经销商/后市场）： 新能源车渗透率超40%→ 行业格局重塑 整车：比亚迪/特斯拉/新势力（理想/蔚来/小鹏/问界） 零部件：电池/芯片/激光雷达/座椅/玻璃 → "卖铲人"逻辑 后市场：充电桩/维修/二手车/保险 免税（海南离岛免税/市内免税店）： 中国中免（601888）= A股免税龙头 受出入境客流影响极大（疫情vs后疫情冰火两重天） 疫情后报复性反弹 → 但长期看是"低利润率"行业 航空公司尤其艰难（高固定成本+油价敏感+竞争激烈） 经济复苏/预期改善时 → 可选消费率先反弹（高Beta属性） 需要密切关注宏观数据（PMI/消费者信心指数/社零数据） 选龙头（品牌力/渠道力/成本控制力最强者）</span>
+  </div>
+</div>
+
+<div class="action">
+  <div class="act-badge">🎯 今日行动 · 3 分钟</div>
+  <div class="act-title">用波特五力模型分析你工作/最熟悉的那个行业，画出五力图</div>
+  <div class="act-sub">今天就动手，别等明天</div>
+</div>
+
+<div class="divider">以下内容 可选</div>
+
+<div class="section">
+  <div class="section-title">🤔 思考与练习</div>
+  <div class="think-item">
+    <span class="ti-num">思考 01</span>
+    <div class="ti-q">你最近一周买了什么消费品？背后的上市公司你了解吗？它的护城河是什么？</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看解析</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>思考框架（试试这三步）：</strong><br><br>
+① <strong>回忆知识：</strong>不看上面的内容，用你自己的话复述今天学到的核心概念（关键词：可选消费 = 经济好时才愿意多花的（家电/汽车/旅游/餐饮/...）<br>
+② <strong>找一个例子：</strong>随便打开一份年报/季报，找3个你今天学到的指标，看看能不能在真实数据里找到它们<br>
+③ <strong>形成行动：</strong>列一张「不买清单」——比「买什么」清单更难但更有用，至少写5条<br><br>
+<em>把答案写下来。明天回看，你会发现写得怎么样不重要，重要的是你的思考路径被记录了下来。</em>
+    </div>
+  </div>
+  <div class="think-item">
+    <span class="ti-num">练习 02</span>
+    <div class="ti-q">打开你的投资APP，你今天学的这个工具/方法，在你的实际账户里有没有可以应用的场景？</div>
+    <span class="show-btn" onclick="var a=this.nextElementSibling;a.style.display='block';this.style.display='none';">👇 点击查看提示</span>
+    <div class="ti-ans" style="display:none;">
+      <strong>从理论到实践：</strong>不要急着操作，先"纸上谈兵"——假设你用这个方法调整了持仓，记录下当时的想法和理由。两周后回看。
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">📚 扩展学习</div>
+  <ul class="link-list">
+    <li class="link-item" onclick="window.open('https://zhuanlan.zhihu.com/p/404481642','_blank')" style="cursor:pointer;" title="点击打开: https://zhuanlan.zhihu.com/p/404481642">
+      <span class="link-icon">📄</span>
+      <div class="link-info">
+        <div class="link-title">可选消费：汽车、家电、旅游的投资逻辑</div>
+        <div class="link-desc">知乎·行业研究</div>
+      </div>
+    </li>
+    <li class="link-item" onclick="window.open('https://zhuanlan.zhihu.com/p/2048037124428010876','_blank')" style="cursor:pointer;" title="点击打开: https://zhuanlan.zhihu.com/p/2048037124428010876">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">消费升级 vs 消费降级：中国消费的真实图景</div>
+        <div class="link-desc">知乎·趋势分析</div>
+      </div>
+    </li>
+    <li class="link-item" onclick="window.open('https://xueqiu.com/4171267348/363861583','_blank')" style="cursor:pointer;" title="点击打开: https://xueqiu.com/4171267348/363861583">
+      <span class="link-icon">📎</span>
+      <div class="link-info">
+        <div class="link-title">可选消费的周期性：什么时候该买？</div>
+        <div class="link-desc">雪球·投资策略</div>
+      </div>
+    </li>
+  </ul>
+</div><div class="footer">
+  <p>财商深度学习计划 · 第三阶段 · 投资工具箱</p>
+  <p>明日预告：<span class="next">Day 58 行业深度：科技（上）——半导体</span></p>
+</div>
+
+</div>
+</body>
+</html>
