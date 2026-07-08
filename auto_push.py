@@ -36,7 +36,7 @@ def parse_html_card(day_num):
     filepath = os.path.join(CARDS_DIR, f"day{day_num:02d}.html")
     if not os.path.exists(filepath):
         return None
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(filepath, 'r', encoding='utf-8-sig') as f:
         content = f.read()
     result = {'day': day_num, 'title': '', 'core_points': [], 'tldr': '', 'keywords': ''}
     m = re.search(r'<h1>(.*?)</h1>', content)
@@ -258,7 +258,7 @@ def send_clawbot(text):
 
 def get_progress():
     if os.path.exists(PROGRESS_FILE):
-        with open(PROGRESS_FILE, 'r', encoding='utf-8') as f:
+        with open(PROGRESS_FILE, 'r', encoding='utf-8-sig') as f:
             return json.load(f)
     return {'current_day': 1, 'started_date': '', 'total_days': 120}
 
