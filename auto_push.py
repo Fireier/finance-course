@@ -11,7 +11,7 @@ from datetime import datetime, timezone, timedelta
 # ============================================================
 # 配置（敏感信息从环境变量读取）
 # ============================================================
-CARDS_DIR = os.path.dirname(os.path.abspath(__file__))
+CARDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance-deep-dives")
 PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance-course-progress.json")
 SHARE_BASE_URL = "https://fireier.github.io/finance-course"
 
@@ -153,13 +153,13 @@ def extract_key_lines(core_points, max_lines=4):
 # ============================================================
 
 def get_finance_news():
-    """尝试多个免费API获取财经新闻"""
+    """尝试多个免费API获取财经新闻，失败则返回None（不推送新闻板块）"""
     beijing = timezone(timedelta(hours=8))
     today_str = datetime.now(beijing).strftime('%m月%d日')
 
     items = []
 
-    # 源1：聚合数据（免费股市快讯）
+    # 源1：AlAPI 财经头条
     try:
         req = urllib.request.Request(
             'https://v1.alapi.cn/api/new/toutiao?type=caijing&num=5',
@@ -170,35 +170,55 @@ def get_finance_news():
             if data.get('code') == 200:
                 for item in data.get('data', [])[:3]:
                     title = item.get('title', '').strip()
+                    source = item.get('source', '财经快讯')
                     if title and len(title) > 8:
-                        items.append(f"{today_str} {title[:60]}（{item.get('source','财经快讯')}）")
+                        items.append(f"{today_str} {title[:60]}（{source}）")
     except Exception:
         pass
 
-    # 源2：获取主要指数（作为市场概况）
+    # 源2：财联社电报（API）
     if not items:
         try:
-            indices = {
-                '上证指数': '1.000001',
-                '深证成指': '0.399001',
-                '沪深300': '1.000300',
-            }
-            secids = ','.join(indices.values())
-            url = f'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f3,f12,f14&secids={secids}'
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.eastmoney.com/'})
+            req = urllib.request.Request(
+                'https://www.cls.cn/nodeapi/updateTelegraphList?app=CailianpressWeb&category=&lastTime=&os=web&sv=7.7.5',
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Referer': 'https://www.cls.cn/telegraph'
+                }
+            )
             with urllib.request.urlopen(req, timeout=8) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
-                for item in data.get('data', {}).get('diff', []):
-                    code = item.get('f12', '')
-                    price = item.get('f2', 0)
-                    change_pct = item.get('f3', 0)
-                    for name, sid in indices.items():
-                        if sid.endswith(code):
-                            direction = '涨' if change_pct > 0 else '跌'
-                            items.append(f"{today_str} {name}报{price:.0f}点，{direction}{abs(change_pct):.2f}%（东方财富）")
+                roll_data = data.get('data', {}).get('roll_data', [])
+                for item in roll_data[:5]:
+                    title = item.get('title', '') or item.get('content', '')[:80]
+                    title = title.strip()
+                    if title and len(title) > 10:
+                        # 去掉HTML标签
+                        title = re.sub(r'<[^>]+>', '', title)
+                        items.append(f"{today_str} {title[:60]}（财联社）")
+                        if len(items) >= 3:
+                            break
         except Exception:
             pass
 
+    # 源3：新浪财经新闻
+    if not items:
+        try:
+            req = urllib.request.Request(
+                'https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=1686&num=5&page=1',
+                headers={'User-Agent': 'Mozilla/5.0'}
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+                for item in data.get('data', [])[:3]:
+                    title = item.get('title', '').strip()
+                    if title and len(title) > 8:
+                        title = re.sub(r'<[^>]+>', '', title)
+                        items.append(f"{today_str} {title[:60]}（新浪财经）")
+        except Exception:
+            pass
+
+    # 如果所有新闻源都失败，返回None — 不推送无关的股票指数数据
     return items if items else None
 
 
@@ -245,7 +265,7 @@ def send_clawbot(text):
             if ret != 0:
                 print(f"ERROR: ClawBot returned {result}", file=sys.stderr)
                 return False
-            print("✅ ClawBot push sent successfully")
+            print("ClawBot push sent successfully")
             return True
     except Exception as e:
         print(f"ERROR: ClawBot request failed: {e}", file=sys.stderr)
@@ -290,29 +310,27 @@ def generate_push(card, news_items=None):
         key_lines = [card['tldr'][:65]]
 
     lines = []
-    lines.append(f"💰 📈 财商打卡 · Day {day}")
-    lines.append(f"{card['title']}")
-    lines.append(f"{progress_bar} {progress_pct}%   {phase_emoji} {phase_name}")
+    lines.append(f"Day {day} | {card['title']}")
+    lines.append(f"{progress_bar} {progress_pct}%  {phase_emoji} {phase_name}")
     lines.append("")
 
     if key_lines:
-        lines.append("▎🔑 今日核心")
+        lines.append("KEY POINTS:")
         for i, kl in enumerate(key_lines[:4]):
-            lines.append(f"  {'❶❷❸❹'[i]} {kl}")
+            lines.append(f"  {i+1}. {kl}")
         lines.append("")
 
     if news_items and len(news_items) > 0:
-        lines.append("▎📰 今日财经速览")
+        lines.append("NEWS:")
         for n in news_items[:3]:
-            lines.append(f"  · {n}")
+            lines.append(f"  - {n}")
         lines.append("")
 
-    lines.append(f"▎📎 深度学习卡片")
-    lines.append(f"  {SHARE_BASE_URL}/day{day:02d}.html")
+    lines.append(f"Card: {SHARE_BASE_URL}/day{day:02d}.html")
 
     msg = '\n'.join(lines)
     if len(msg) > 1800:
-        msg = msg[:1800] + "\n  ...\n▎📎 深度学习卡片\n  {}/day{:02d}.html".format(SHARE_BASE_URL, day)
+        msg = msg[:1750] + "\n...\n" + f"Card: {SHARE_BASE_URL}/day{day:02d}.html"
     return msg
 
 
@@ -322,18 +340,18 @@ def generate_push(card, news_items=None):
 
 def main():
     print("=" * 50)
-    print("🤖 财商课程 GitHub Actions 自动推送")
+    print("Finance Course Auto Push")
     beijing = timezone(timedelta(hours=8))
-    print(f"⏰ 北京时间: {datetime.now(beijing).strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Beijing Time: {datetime.now(beijing).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
 
     # 1. 读取进度
     progress = get_progress()
     day = progress['current_day']
-    print(f"\n📖 当前进度: Day {day}/120")
+    print(f"\nProgress: Day {day}/120")
 
     if day > 120:
-        print("🎉 120天课程已完成！")
+        print("120-day course completed!")
         new_progress = progress.copy()
         new_progress['current_day'] = day
         save_progress(new_progress)
@@ -342,30 +360,29 @@ def main():
     # 2. 解析当日卡片
     card = parse_html_card(day)
     if card is None:
-        print(f"❌ 找不到 Day {day} 的卡片文件")
+        print(f"Cannot find card for Day {day}")
         sys.exit(1)
-    print(f"📝 主题: {card['title']}")
+    print(f"Topic: {card['title']}")
 
     # 3. 获取新闻
     news = get_finance_news()
     if news:
-        print(f"📰 获取到 {len(news)} 条财经新闻")
+        print(f"Got {len(news)} news items")
     else:
-        print("⚠️ 未获取到新闻，将跳过新闻板块")
+        print("No news available, skipping news section")
 
     # 4. 生成推送消息
     msg = generate_push(card, news)
-    print(f"\n📋 推送内容 ({len(msg)} 字符):")
+    print(f"\nPush content ({len(msg)} chars):")
     print("---")
     print(msg)
     print("---")
 
     # 5. 发送
-    print("\n📤 发送 ClawBot 推送...")
+    print("\nSending ClawBot push...")
     ok = send_clawbot(msg)
     if not ok:
-        # 第一次失败重试
-        print("⚠️ 首次发送失败，3秒后重试...")
+        print("First attempt failed, retrying in 3s...")
         import time
         time.sleep(3)
         ok = send_clawbot(msg)
@@ -374,12 +391,12 @@ def main():
     new_progress = progress.copy()
     new_progress['current_day'] = day + 1
     save_progress(new_progress)
-    print(f"\n📈 进度已更新: Day {day} → Day {day + 1}")
+    print(f"\nProgress updated: Day {day} -> Day {day + 1}")
 
     if ok:
-        print("✅ 今日推送完成！")
+        print("Today's push completed!")
     else:
-        print("❌ 推送失败，但进度已保存防止重复推送")
+        print("Push failed, but progress saved to prevent duplicate push")
         sys.exit(1)
 
 
