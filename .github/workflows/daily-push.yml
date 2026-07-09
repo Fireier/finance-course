@@ -1,7 +1,11 @@
 name: 财商课程每日推送
 
 on:
-  workflow_dispatch:  # 由 cron-job.org 外部定时触发（每天北京时间 08:00）
+  schedule:
+    # 北京时间 07:00-09:00 每15分钟触发一次（8次/天），date guard 防重复
+    - cron: '0,15,30,45 23 * * *'
+    - cron: '0,15,30,45 0 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
