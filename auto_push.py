@@ -6,6 +6,7 @@ GitHub Actions 财商课程每日自动推送脚本
 """
 
 import re, os, sys, json, uuid, base64, urllib.request, urllib.error, html
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 
 # ============================================================
@@ -29,7 +30,7 @@ PHASES = [
 ]
 
 # ============================================================
-# HTML 卡片解析（精简版）
+# HTML 卡片解析
 # ============================================================
 
 def parse_html_card(day_num):
@@ -149,76 +150,75 @@ def extract_key_lines(core_points, max_lines=4):
 
 
 # ============================================================
-# 新闻获取
+# 新闻获取（RSS 源，全球可访问，无需 API key）
 # ============================================================
 
 def get_finance_news():
-    """尝试多个免费API获取财经新闻，失败则返回None（不推送新闻板块）"""
+    """通过 RSS 获取财经新闻，返回带日期和来源的新闻列表"""
     beijing = timezone(timedelta(hours=8))
     today_str = datetime.now(beijing).strftime('%m月%d日')
-
     items = []
 
-    # 源1：AlAPI 财经头条
+    # 源1：人民网-财经 RSS
     try:
         req = urllib.request.Request(
-            'https://v1.alapi.cn/api/new/toutiao?type=caijing&num=5',
-            headers={'User-Agent': 'Mozilla/5.0'}
+            'http://www.people.com.cn/rss/finance.xml',
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
         )
-        with urllib.request.urlopen(req, timeout=8) as resp:
-            data = json.loads(resp.read().decode('utf-8'))
-            if data.get('code') == 200:
-                for item in data.get('data', [])[:3]:
-                    title = item.get('title', '').strip()
-                    source = item.get('source', '财经快讯')
-                    if title and len(title) > 8:
-                        items.append(f"{today_str} {title[:60]}（{source}）")
-    except Exception:
-        pass
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            raw = resp.read().decode('utf-8', errors='replace')
+            root = ET.fromstring(raw)
+            for item in root.findall('.//item')[:5]:
+                title = item.findtext('title', '').strip()
+                title = re.sub(r'<[^>]+>', '', title)
+                pub = item.findtext('pubDate', '').strip()
+                if title and len(title) > 8:
+                    items.append(f"{today_str} {title[:55]}（来源：人民网）")
+                    if len(items) >= 3:
+                        break
+    except Exception as e:
+        print(f"  人民网RSS失败: {e}")
 
-    # 源2：财联社电报（API）
+    # 源2：36氪 RSS
     if not items:
         try:
             req = urllib.request.Request(
-                'https://www.cls.cn/nodeapi/updateTelegraphList?app=CailianpressWeb&category=&lastTime=&os=web&sv=7.7.5',
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Referer': 'https://www.cls.cn/telegraph'
-                }
+                'https://36kr.com/feed',
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
             )
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                roll_data = data.get('data', {}).get('roll_data', [])
-                for item in roll_data[:5]:
-                    title = item.get('title', '') or item.get('content', '')[:80]
-                    title = title.strip()
-                    if title and len(title) > 10:
-                        # 去掉HTML标签
-                        title = re.sub(r'<[^>]+>', '', title)
-                        items.append(f"{today_str} {title[:60]}（财联社）")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                raw = resp.read().decode('utf-8', errors='replace')
+                root = ET.fromstring(raw)
+                for item in root.findall('.//item')[:5]:
+                    title = item.findtext('title', '').strip()
+                    title = re.sub(r'<[^>]+>', '', title)
+                    if title and len(title) > 8:
+                        items.append(f"{today_str} {title[:55]}（来源：36氪）")
                         if len(items) >= 3:
                             break
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  36氪RSS失败: {e}")
 
-    # 源3：新浪财经新闻
+    # 源3：IT之家 RSS（科技+财经混合）
     if not items:
         try:
             req = urllib.request.Request(
-                'https://feed.mix.sina.com.cn/api/roll/get?pageid=153&lid=1686&num=5&page=1',
-                headers={'User-Agent': 'Mozilla/5.0'}
+                'https://www.ithome.com/rss/',
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
             )
-            with urllib.request.urlopen(req, timeout=8) as resp:
-                data = json.loads(resp.read().decode('utf-8'))
-                for item in data.get('data', [])[:3]:
-                    title = item.get('title', '').strip()
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                raw = resp.read().decode('utf-8', errors='replace')
+                root = ET.fromstring(raw)
+                for item in root.findall('.//item')[:5]:
+                    title = item.findtext('title', '').strip()
+                    title = re.sub(r'<[^>]+>', '', title)
                     if title and len(title) > 8:
-                        title = re.sub(r'<[^>]+>', '', title)
-                        items.append(f"{today_str} {title[:60]}（新浪财经）")
-        except Exception:
-            pass
+                        items.append(f"{today_str} {title[:55]}（来源：IT之家）")
+                        if len(items) >= 3:
+                            break
+        except Exception as e:
+            print(f"  IT之家RSS失败: {e}")
 
-    # 如果所有新闻源都失败，返回None — 不推送无关的股票指数数据
     return items if items else None
 
 
@@ -310,27 +310,29 @@ def generate_push(card, news_items=None):
         key_lines = [card['tldr'][:65]]
 
     lines = []
-    lines.append(f"Day {day} | {card['title']}")
-    lines.append(f"{progress_bar} {progress_pct}%  {phase_emoji} {phase_name}")
+    lines.append(f"💰 📈 财商打卡 · Day {day}")
+    lines.append(f"{card['title']}")
+    lines.append(f"{progress_bar} {progress_pct}%   {phase_emoji} {phase_name}")
     lines.append("")
 
     if key_lines:
-        lines.append("KEY POINTS:")
+        lines.append("🔑 核心知识：")
         for i, kl in enumerate(key_lines[:4]):
             lines.append(f"  {i+1}. {kl}")
         lines.append("")
 
     if news_items and len(news_items) > 0:
-        lines.append("NEWS:")
+        lines.append("📰 今日时事：")
         for n in news_items[:3]:
-            lines.append(f"  - {n}")
+            lines.append(f"  · {n}")
         lines.append("")
 
-    lines.append(f"Card: {SHARE_BASE_URL}/day{day:02d}.html")
+    lines.append("📎 深度学习卡片链接：")
+    lines.append(f"  {SHARE_BASE_URL}/day{day:02d}.html")
 
     msg = '\n'.join(lines)
     if len(msg) > 1800:
-        msg = msg[:1750] + "\n...\n" + f"Card: {SHARE_BASE_URL}/day{day:02d}.html"
+        msg = msg[:1750] + "\n...\n" + f"📎 深度学习卡片链接：\n  {SHARE_BASE_URL}/day{day:02d}.html"
     return msg
 
 
