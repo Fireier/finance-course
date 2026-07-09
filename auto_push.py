@@ -352,6 +352,12 @@ def main():
     day = progress['current_day']
     print(f"\nProgress: Day {day}/120")
 
+    # 日期防重：同一天不重复推送（应对 cron 多时间点触发）
+    today_date = datetime.now(beijing).strftime('%Y-%m-%d')
+    if progress.get('last_push_date') == today_date:
+        print(f"Already pushed today ({today_date}), skipping")
+        return
+
     if day > 120:
         print("120-day course completed!")
         new_progress = progress.copy()
@@ -392,6 +398,7 @@ def main():
     # 6. 更新进度
     new_progress = progress.copy()
     new_progress['current_day'] = day + 1
+    new_progress['last_push_date'] = today_date
     save_progress(new_progress)
     print(f"\nProgress updated: Day {day} -> Day {day + 1}")
 
