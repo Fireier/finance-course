@@ -1,13 +1,7 @@
 name: 财商课程每日推送
 
 on:
-  schedule:
-    # UTC 00:00 = 北京时间 08:00
-    # 北京时间 07:00 / 07:45 / 08:00 三次触发，防漏
-    - cron: '0 23 * * *'
-    - cron: '45 23 * * *'
-    - cron: '0 0 * * *'
-  workflow_dispatch:  # 支持手动触发
+  workflow_dispatch:  # 由 cron-job.org 外部定时触发（每天北京时间 08:00）
 
 permissions:
   contents: write
