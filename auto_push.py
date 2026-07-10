@@ -4,7 +4,7 @@
 GitHub Actions 财商课程每日自动推送脚本 v4
 - 新闻源：36氪RSS（主力） + IT之家RSS（辅助），人民网RSS已停更不再使用
 - 按课程主题关键词过滤新闻，输出最相关的3条
-- 每条新闻带摘要，内容更丰富
+- 每条新闻带250字摘要，讲清楚关键内容
 - 使用新闻真实发布日期，不虚假标注
 """
 
@@ -300,8 +300,8 @@ def fetch_rss_items(url, source_name, max_items=10):
                 # 清理HTML和空白
                 desc = re.sub(r'<[^>]+>', '', desc)
                 desc = re.sub(r'\s+', ' ', desc).strip()
-                # 取前80字作为摘要
-                desc = desc[:80]
+                # 取前250字作为摘要，讲清楚新闻关键部分
+                desc = desc[:250]
 
                 pub_date = item.findtext('pubDate', '').strip()
                 date_str, dt = parse_rss_date(pub_date)
@@ -390,10 +390,9 @@ def get_finance_news(topic_keywords=None):
         desc = item.get('desc', '')
 
         if desc and len(desc) > 10:
-            # 带摘要
-            line = f"{date} {title}（{src}）\n     {desc}"
+            line = f"{date} | {src}\n  {title}\n  {desc}"
         else:
-            line = f"{date} {title}（{src}）"
+            line = f"{date} | {src}\n  {title}"
         selected.append(line)
 
     if not selected:
