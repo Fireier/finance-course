@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GitHub Actions 财商课程每日自动推送脚本
-完全自包含，仅依赖 Python 标准库，在 GitHub Actions 免费额度内运行
+GitHub Actions 财商课程每日自动推送脚本 v4
+- 新闻源：36氪RSS（主力） + IT之家RSS（辅助），人民网RSS已停更不再使用
+- 按课程主题关键词过滤新闻，输出最相关的3条
+- 每条新闻带摘要，内容更丰富
+- 使用新闻真实发布日期，不虚假标注
 """
 
 import re, os, sys, json, uuid, base64, urllib.request, urllib.error, html
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
+from email.utils import parsedate_to_datetime
 
 # ============================================================
-# 配置（敏感信息从环境变量读取）
+# 配置
 # ============================================================
 CARDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance-deep-dives")
 PROGRESS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance-course-progress.json")
@@ -20,7 +24,6 @@ CLAWBOT_TOKEN = os.environ.get("CLAWBOT_TOKEN", "")
 CLAWBOT_USER_ID = os.environ.get("CLAWBOT_USER_ID", "")
 CLAWBOT_BASE_URL = os.environ.get("CLAWBOT_BASE_URL", "https://ilinkai.weixin.qq.com")
 
-# 阶段配置
 PHASES = [
     (1, 25, "金融世界观基础", "🌍"),
     (26, 45, "大师智慧", "🧠"),
@@ -28,6 +31,137 @@ PHASES = [
     (66, 95, "综合实战", "⚔️"),
     (96, 120, "毕业与终身学习", "🎓"),
 ]
+
+# ============================================================
+# 泛金融关键词（用来判断一条新闻是否算财经新闻）
+# ============================================================
+FINANCE_KEYWORDS = [
+    # 宏观
+    "央行", "利率", "降息", "加息", "通胀", "CPI", "PPI", "GDP", "PMI",
+    "货币政策", "财政", "逆回购", "MLF", "LPR", "汇率", "人民币", "美元",
+    "外汇", "国债", "税收", "减税", "赤字", "顺差", "逆差",
+    # 银行与金融
+    "银行", "贷款", "存款", "信贷", "金融", "理财", "保险", "支付",
+    "数字人民币", "数字货币", "支付宝", "微信支付", "银联",
+    # 资本市场
+    "股市", "股票", "A股", "上证", "深证", "创业板", "科创板", "北交所",
+    "港股", "美股", "IPO", "上市", "市值", "指数", "基金", "ETF",
+    "债券", "期货", "期权", "涨停", "跌停", "减持", "增持", "回购", "分红",
+    # 行业与投资
+    "房地产", "房价", "楼市", "房贷",
+    "新能源", "芯片", "半导体", "人工智能", "AI", "数字经济", "互联网",
+    "消费", "零售", "汽车", "医药", "白酒", "煤炭", "石油", "黄金",
+    "投资", "资产", "收益", "风险", "估值",
+    # 公司财务
+    "融资", "营收", "利润", "亏损", "盈利", "财报", "季度", "年报",
+    "创始人", "收购", "并购", "重组", "剥离",
+    # 国际经济
+    "美联储", "欧元", "日元", "贸易", "关税", "进出口",
+    "纳斯达克", "道琼斯", "标普",
+    # 个人财务
+    "收入", "工资", "就业", "失业", "社保", "养老", "公积金",
+    "消费者", "购买力", "物价", "涨价", "降价",
+    # 机构
+    "证监会", "银保监", "财政部", "统计局", "发改委", "商务部",
+    "M2", "社融",
+]
+# 去掉太短的词（避免误匹配）
+FINANCE_KEYWORDS = [kw for kw in FINANCE_KEYWORDS if len(kw) >= 2]
+
+# 明显非财经内容关键词（排除用）
+NON_FINANCE_PATTERNS = [
+    '耳机', '礼盒', '预售', '电动自行车', '测速', '游戏', '动漫',
+    '综艺', '电影', '音乐', '明星', '穿搭', '美妆', '护肤', '宠物',
+    '天气', '星座', '高考', '中考', '节日', '美食', '旅游攻略',
+    '中超', '冠军', '夺冠', '比赛', '运动员', '球队', '体育',
+]
+
+# ============================================================
+# 从卡片提取主题关键词
+# ============================================================
+
+NOISE_WORDS = {
+    '分钟', '约', '的', '是', '和', '与', '不', '了', '在', '有', '这',
+    '10', '12', '15', '入门', '基础', '进阶', '教你', '学会', '了解',
+    '更多', '最重要', '最重要。', '点击', '查看', '阅读',
+}
+
+
+def extract_topic_keywords(card):
+    """从卡片提取主题关键词，用于新闻匹配"""
+    keywords = []
+
+    # 1. 副标题（作者手动标注的核心概念，质量最高）
+    kw_str = card.get('keywords', '')
+    if kw_str:
+        kw_str_clean = re.sub(r'<[^>]+>', '', kw_str)
+        for p in re.split(r'[ /·,，、]+', kw_str_clean):
+            p = p.strip()
+            if p and len(p) >= 2 and not p.isdigit() and p not in NOISE_WORDS:
+                keywords.append(p)
+
+    # 2. 标题中的核心词
+    title = card.get('title', '')
+    title_clean = re.sub(r'<[^>]+>', '', title)
+    title_clean = re.sub(r'[（(][^)）]*[)）]', '', title_clean)
+    for part in re.split(r'[——：:，,、。！？\s\-?]+', title_clean):
+        part = part.strip()
+        if 2 <= len(part) <= 6 and part not in NOISE_WORDS and not part.isdigit():
+            keywords.append(part)
+
+    # 3. 核心知识点的专有名词
+    for cp in card.get('core_points', [])[:4]:
+        summary = cp.get('summary', '')
+        summary_clean = re.sub(r'<[^>]+>', '', summary)
+        for a in re.findall(r'\b[A-Z]{2,6}\b', summary_clean):
+            if a not in NOISE_WORDS and len(a) >= 2:
+                keywords.append(a)
+        for b in re.findall(r'《(.+?)》', summary_clean):
+            if 2 <= len(b.strip()) <= 8:
+                keywords.append(b.strip())
+
+    # 去重
+    seen = set()
+    unique = []
+    for k in keywords:
+        if k not in seen:
+            seen.add(k)
+            unique.append(k)
+    return unique
+
+
+def score_news_item(title, desc, topic_keywords):
+    """按主题相关性给新闻打分"""
+    combined = (title + ' ' + desc) if desc else title
+    score = 0
+
+    # 主题关键词命中（权重 x3）
+    for kw in topic_keywords:
+        if len(kw) >= 2 and kw in combined:
+            score += 3
+
+    # 泛金融关键词命中（权重 x1）
+    finance_hits = 0
+    for kw in FINANCE_KEYWORDS:
+        if kw in combined:
+            finance_hits += 1
+    score += finance_hits
+
+    # 完全非财经内容惩罚
+    is_non_finance = False
+    for nf in NON_FINANCE_PATTERNS:
+        if nf in title:
+            is_non_finance = True
+            break
+    if is_non_finance and finance_hits < 2:
+        score -= 10
+
+    # 标题太短（低质量）
+    if len(title) < 10:
+        score -= 3
+
+    return score
+
 
 # ============================================================
 # HTML 卡片解析
@@ -69,16 +203,10 @@ def is_header_or_empty(s):
         return True
     if re.match(r'^.{2,25}[：:：]\s*$', s):
         return True
-    if re.match(r'^[A-Z]{2,6}[（(].{0,20}[)）]\s*$', s):
-        return True
     patterns = [
-        r'^(他是谁|马克斯的核心思想|格雷厄姆|巴菲特|达里奥|芒格|彼得·林奇|查理·芒格)(的|是).{0,25}$',
-        r'^(一个|关键|重要|注意|⚠️|批判性|核心).{0,20}$',
-        r'^(盈利能力指标|财务指标|核心定义|标准计算|保险浮存金|信息源分级|必备信息).{0,20}$',
-        r'^(《.{2,20}》的核心定义).{0,20}$',
-        r'^(成长性指标|偿债能力指标|运营效率指标|现金流指标).{0,15}$',
-        r'^(平安的|平安经营|保险.{0,5}赚钱).{0,20}$',
-        r'^(通过|重要提醒|马克斯识别).{0,20}$',
+        r'^(他是谁|马克斯的核心思想|格雷厄姆|巴菲特|达里奥|芒格)(的|是).{0,25}$',
+        r'^(一个|关键|重要|注意|⚠️).{0,20}$',
+        r'^(盈利能力|财务指标|核心定义).{0,20}$',
     ]
     return any(re.match(p, s) for p in patterns)
 
@@ -96,130 +224,182 @@ def extract_key_lines(core_points, max_lines=4):
         lines.append(s)
     if len(lines) < 3:
         used = set(lines)
-        all_candidates = []
+        candidates = []
         for p in core_points:
-            raw_html = p.get('raw_html', p['full'])
-            full_marked = re.sub(r'<br\s*/?>', '\n', raw_html)
-            full_marked = re.sub(r'</strong>', '\n', full_marked)
-            full_clean = re.sub(r'<[^>]+>', '', full_marked)
-            full_clean = re.sub(r'\s+', ' ', full_clean).strip()
-            segments = re.split(r'[。；\n]', full_clean)
-            for sent in segments:
+            raw = p.get('raw_html', p['full'])
+            full_clean = re.sub(r'<[^>]+>', '', raw).strip()
+            full_clean = re.sub(r'\s+', ' ', full_clean)
+            for sent in re.split(r'[。；\n]', full_clean):
                 sent = sent.strip()
-                if len(sent) < 10 or len(sent) > 72:
-                    continue
-                if is_header_or_empty(sent):
-                    continue
-                if sent in used:
+                if len(sent) < 10 or len(sent) > 72 or is_header_or_empty(sent) or sent in used:
                     continue
                 used.add(sent)
                 score = 0
-                if re.search(r'(区分|分清|不要|警惕|避免|注意|必须|关键是|核心在)', sent):
+                if re.search(r'(区分|分清|不要|警惕|避免|注意)', sent):
                     score += 4
-                if re.search(r'(本质|真相|底层|根源|不是.*而是|看起来.*其实)', sent):
+                if re.search(r'(本质|真相|底层|根源)', sent):
                     score += 3
-                if re.search(r'[>≥<>]\s*\d+%?', sent):
-                    score += 3
-                elif re.search(r'\d+%|\d+倍|\d+万亿|\d+亿', sent):
+                if re.search(r'\d+%|\d+倍|\d+万亿|\d+亿', sent):
                     score += 2
-                if re.search(r'(ROE|PE|PB|PEG|CPI|M2|GDP|ETF|FCF)', sent):
+                if re.search(r'(ROE|PE|PB|PEG|CPI|M2|GDP|ETF)', sent):
                     score += 2
-                if re.search(r'(关键|核心|最重要|陷阱|误区|真正)', sent):
-                    score += 1
-                all_candidates.append((score, sent))
-        dedup = {}
-        for score, sent in all_candidates:
-            key = sent[:20]
-            if key not in dedup or score > dedup[key][0]:
-                dedup[key] = (score, sent)
-        sorted_candidates = sorted(dedup.values(), key=lambda x: (-x[0], -len(x[1])))
-        for score, sent in sorted_candidates:
+                candidates.append((score, sent))
+        candidates.sort(key=lambda x: (-x[0], -len(x[1])))
+        for score, sent in candidates:
             if len(lines) >= max_lines:
                 break
             lines.append(sent)
-    if len(lines) < 2:
-        for p in core_points:
-            if len(lines) >= max_lines:
-                break
-            s = p['summary']
-            s = re.sub(r'[：:：]\s*$', '', s)
-            s = re.sub(r'^[（(][^)）]*[)）]\s*', '', s)
-            if len(s) > 8 and s not in lines:
-                lines.append(s)
     return lines[:max_lines]
 
 
 # ============================================================
-# 新闻获取（RSS 源，全球可访问，无需 API key）
+# 新闻获取
 # ============================================================
 
-def get_finance_news():
-    """通过 RSS 获取财经新闻，返回带日期和来源的新闻列表"""
+def parse_rss_date(date_str):
+    """解析 RSS 日期字符串（支持多种格式），返回 (标准日期, datetime)"""
+    if not date_str:
+        return None, None
     beijing = timezone(timedelta(hours=8))
-    today_str = datetime.now(beijing).strftime('%m月%d日')
-    items = []
+    # 36氪格式: '2026-07-10 11:26:25  +0800'
+    try:
+        d_clean = date_str.strip().replace('  ', ' ')
+        dt = datetime.strptime(d_clean, '%Y-%m-%d %H:%M:%S %z')
+        dt = dt.astimezone(beijing)
+        return dt.strftime('%m月%d日'), dt
+    except ValueError:
+        pass
+    # 标准 RSS 格式 (email.utils)
+    try:
+        dt = parsedate_to_datetime(date_str)
+        dt = dt.astimezone(beijing)
+        return dt.strftime('%m月%d日'), dt
+    except Exception:
+        return None, None
 
-    # 源1：人民网-财经 RSS
+
+def fetch_rss_items(url, source_name, max_items=10):
+    """从 RSS 获取新闻条目（含标题、摘要、日期）"""
+    items = []
     try:
         req = urllib.request.Request(
-            'http://www.people.com.cn/rss/finance.xml',
-            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            url,
+            headers={'User-Agent': 'Mozilla/5.0 (compatible; FinanceCourseBot/1.0)'}
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
             raw = resp.read().decode('utf-8', errors='replace')
             root = ET.fromstring(raw)
-            for item in root.findall('.//item')[:5]:
+            for item in root.findall('.//item')[:max_items]:
                 title = item.findtext('title', '').strip()
                 title = re.sub(r'<[^>]+>', '', title)
-                pub = item.findtext('pubDate', '').strip()
+                # 36氪有些标题以数字+点号开头，去掉
+                title = re.sub(r'^\d+点\d+氪\s*[|｜]\s*', '', title)
+                title = re.sub(r'^\d+[\.\、]\s*', '', title)
+
+                desc = item.findtext('description', '').strip()
+                # 清理HTML和空白
+                desc = re.sub(r'<[^>]+>', '', desc)
+                desc = re.sub(r'\s+', ' ', desc).strip()
+                # 取前80字作为摘要
+                desc = desc[:80]
+
+                pub_date = item.findtext('pubDate', '').strip()
+                date_str, dt = parse_rss_date(pub_date)
+
                 if title and len(title) > 8:
-                    items.append(f"{today_str} {title[:55]}（来源：人民网）")
-                    if len(items) >= 3:
-                        break
+                    items.append({
+                        'title': title,
+                        'desc': desc,
+                        'date_str': date_str,
+                        'datetime': dt,
+                        'source': source_name,
+                    })
     except Exception as e:
-        print(f"  人民网RSS失败: {e}")
+        print(f"  {source_name} RSS: {e}")
+    return items
 
-    # 源2：36氪 RSS
-    if not items:
-        try:
-            req = urllib.request.Request(
-                'https://36kr.com/feed',
-                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                raw = resp.read().decode('utf-8', errors='replace')
-                root = ET.fromstring(raw)
-                for item in root.findall('.//item')[:5]:
-                    title = item.findtext('title', '').strip()
-                    title = re.sub(r'<[^>]+>', '', title)
-                    if title and len(title) > 8:
-                        items.append(f"{today_str} {title[:55]}（来源：36氪）")
-                        if len(items) >= 3:
-                            break
-        except Exception as e:
-            print(f"  36氪RSS失败: {e}")
 
-    # 源3：IT之家 RSS（科技+财经混合）
-    if not items:
-        try:
-            req = urllib.request.Request(
-                'https://www.ithome.com/rss/',
-                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                raw = resp.read().decode('utf-8', errors='replace')
-                root = ET.fromstring(raw)
-                for item in root.findall('.//item')[:5]:
-                    title = item.findtext('title', '').strip()
-                    title = re.sub(r'<[^>]+>', '', title)
-                    if title and len(title) > 8:
-                        items.append(f"{today_str} {title[:55]}（来源：IT之家）")
-                        if len(items) >= 3:
-                            break
-        except Exception as e:
-            print(f"  IT之家RSS失败: {e}")
+def get_finance_news(topic_keywords=None):
+    """
+    获取与当天课程主题相关的财经新闻。
+    36氪主力 + IT之家辅助，按主题相关度排序取TOP 3。
+    """
+    if topic_keywords is None:
+        topic_keywords = []
 
-    return items if items else None
+    beijing = timezone(timedelta(hours=8))
+    now = datetime.now(beijing)
+
+    all_items = []
+
+    # 主力源：36氪（科技商业财经，实时更新，有摘要）
+    print("  获取36氪 RSS...")
+    kr_items = fetch_rss_items('https://36kr.com/feed', '36氪', max_items=15)
+    all_items.extend(kr_items)
+    print(f"    36氪: {len(kr_items)} 条")
+
+    # 辅助源：IT之家（科技，当前但非财经）
+    print("  获取IT之家 RSS...")
+    it_items = fetch_rss_items('https://www.ithome.com/rss/', 'IT之家', max_items=10)
+    all_items.extend(it_items)
+    print(f"    IT之家: {len(it_items)} 条")
+
+    # 备用源：人民网财经（可能不更新，但聊胜于无）
+    if len(all_items) < 5:
+        print("  获取人民网财经 RSS（备用）...")
+        rm_items = fetch_rss_items('http://www.people.com.cn/rss/finance.xml', '人民网', max_items=5)
+        all_items.extend(rm_items)
+
+    print(f"  共 {len(all_items)} 条候选新闻")
+
+    if not all_items:
+        return None
+
+    # 按主题相关度打分
+    scored = []
+    for item in all_items:
+        s = score_news_item(item['title'], item.get('desc', ''), topic_keywords)
+        scored.append((s, item))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    # 调试输出
+    print(f"  主题关键词: {', '.join(topic_keywords[:8])}" if topic_keywords else "  无主题关键词")
+    print("  TOP5 相关度:")
+    for score, item in scored[:5]:
+        print(f"    [{score:3d}] {item['title'][:50]}")
+
+    # 取分数最高的3条
+    # 门槛：如果最高分<=0 且有主题关键词，说明完全无匹配
+    if topic_keywords:
+        top_scores = [s for s, _ in scored[:3]]
+        if max(top_scores) <= 0:
+            print("  ⚠ 新闻与课程主题完全无关，跳过新闻板块")
+            return None
+        # 有效分数 < 1 时（只有泛金融微弱匹配），也跳过
+        if max(top_scores) < 1:
+            print("  ⚠ 新闻相关度过低，跳过新闻板块")
+            return None
+
+    # 组装输出（带摘要的格式）
+    selected = []
+    for score, item in scored[:3]:
+        date = item.get('date_str') or now.strftime('%m月%d日')
+        src = item['source']
+        title = item['title'][:55]
+        desc = item.get('desc', '')
+
+        if desc and len(desc) > 10:
+            # 带摘要
+            line = f"{date} {title}（{src}）\n     {desc}"
+        else:
+            line = f"{date} {title}（{src}）"
+        selected.append(line)
+
+    if not selected:
+        return None
+
+    return selected
 
 
 # ============================================================
@@ -282,6 +462,7 @@ def get_progress():
             return json.load(f)
     return {'current_day': 1, 'started_date': '', 'total_days': 120}
 
+
 def save_progress(progress):
     with open(PROGRESS_FILE, 'w', encoding='utf-8') as f:
         json.dump(progress, f, ensure_ascii=False, indent=2)
@@ -296,6 +477,7 @@ def get_phase(day_num):
         if start <= day_num <= end:
             return name, emoji
     return "毕业与终身学习", "🎓"
+
 
 def generate_push(card, news_items=None):
     day = card['day']
@@ -332,7 +514,7 @@ def generate_push(card, news_items=None):
 
     msg = '\n'.join(lines)
     if len(msg) > 1800:
-        msg = msg[:1750] + "\n...\n" + f"📎 深度学习卡片链接：\n  {SHARE_BASE_URL}/day{day:02d}.html"
+        msg = msg[:1750] + "\n...\n" + f"📎 {SHARE_BASE_URL}/day{day:02d}.html"
     return msg
 
 
@@ -342,7 +524,7 @@ def generate_push(card, news_items=None):
 
 def main():
     print("=" * 50)
-    print("Finance Course Auto Push")
+    print("Finance Course Auto Push v4")
     beijing = timezone(timedelta(hours=8))
     print(f"Beijing Time: {datetime.now(beijing).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
@@ -352,60 +534,62 @@ def main():
     day = progress['current_day']
     print(f"\nProgress: Day {day}/120")
 
-    # 日期防重：同一天不重复推送（应对 cron 多时间点触发）
+    # 日期防重
     today_date = datetime.now(beijing).strftime('%Y-%m-%d')
     if progress.get('last_push_date') == today_date:
         print(f"Already pushed today ({today_date}), skipping")
         return
 
     if day > 120:
-        print("120-day course completed!")
-        new_progress = progress.copy()
-        new_progress['current_day'] = day
-        save_progress(new_progress)
+        print("Course completed!")
         return
 
-    # 2. 解析当日卡片
+    # 2. 解析卡片
     card = parse_html_card(day)
     if card is None:
         print(f"Cannot find card for Day {day}")
         sys.exit(1)
     print(f"Topic: {card['title']}")
 
-    # 3. 获取新闻
-    news = get_finance_news()
-    if news:
-        print(f"Got {len(news)} news items")
-    else:
-        print("No news available, skipping news section")
+    # 3. 提取关键词
+    topic_keywords = extract_topic_keywords(card)
+    if topic_keywords:
+        preview = topic_keywords[:10]
+        print(f"Keywords ({len(topic_keywords)}): {preview}")
 
-    # 4. 生成推送消息
+    # 4. 获取相关新闻
+    news = get_finance_news(topic_keywords)
+    if news:
+        print(f"Selected {len(news)} relevant news items")
+    else:
+        print("No relevant news, skipping news section")
+
+    # 5. 生成推送
     msg = generate_push(card, news)
     print(f"\nPush content ({len(msg)} chars):")
     print("---")
     print(msg)
     print("---")
 
-    # 5. 发送
-    print("\nSending ClawBot push...")
+    # 6. 发送
+    print("\nSending...")
     ok = send_clawbot(msg)
     if not ok:
-        print("First attempt failed, retrying in 3s...")
         import time
         time.sleep(3)
         ok = send_clawbot(msg)
 
-    # 6. 更新进度
+    # 7. 更新进度
     new_progress = progress.copy()
     new_progress['current_day'] = day + 1
     new_progress['last_push_date'] = today_date
     save_progress(new_progress)
-    print(f"\nProgress updated: Day {day} -> Day {day + 1}")
+    print(f"\nProgress: Day {day} -> Day {day + 1}")
 
     if ok:
-        print("Today's push completed!")
+        print("Done!")
     else:
-        print("Push failed, but progress saved to prevent duplicate push")
+        print("Push failed, progress saved to prevent duplicate")
         sys.exit(1)
 
 
