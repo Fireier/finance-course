@@ -358,27 +358,45 @@ def get_finance_news(topic_keywords=None):
         all_items.extend(google_items)
         print(f"    Google News: {len(google_items)} 条")
 
-    # 辅助源1：36氪
-    print("  获取36氪 RSS...")
-    kr_items = fetch_rss_items('https://36kr.com/feed', '36氪', max_items=15)
-    all_items.extend(kr_items)
-    print(f"    36氪: {len(kr_items)} 条")
-
-    # 辅助源2：财联社电报（RSSHub）
+    # 辅助源1：财联社电报（专业财经快讯，首选）
     print("  获取财联社电报 RSS...")
     cls_items = fetch_rss_items('https://rsshub.app/cls/telegraph', '财联社', max_items=15)
     all_items.extend(cls_items)
     print(f"    财联社: {len(cls_items)} 条")
 
-    # 辅助源3：华尔街见闻（RSSHub）
+    # 辅助源2：华尔街见闻（深度财经）
     print("  获取华尔街见闻 RSS...")
     wscn_items = fetch_rss_items('https://rsshub.app/wallstreetcn/live', '华尔街见闻', max_items=15)
     all_items.extend(wscn_items)
     print(f"    华尔街见闻: {len(wscn_items)} 条")
 
-    # 辅助源4：IT之家（最后兜底）
+    # 辅助源3：金十数据（专业数据/快讯）
+    print("  获取金十数据 RSS...")
+    jinshi_items = fetch_rss_items('https://rsshub.app/jin10/2', '金十数据', max_items=10)
+    all_items.extend(jinshi_items)
+    print(f"    金十数据: {len(jinshi_items)} 条")
+
+    # 辅助源4：新浪财经（综合财经）
+    print("  获取新浪财经 RSS...")
+    sina_items = fetch_rss_items('https://rsshub.app/sina/rollnews', '新浪财经', max_items=15)
+    all_items.extend(sina_items)
+    print(f"    新浪财经: {len(sina_items)} 条")
+
+    # 辅助源5：财新（深度报道）
+    print("  获取财新 RSS...")
+    caixin_items = fetch_rss_items('https://rsshub.app/caixin/latest', '财新', max_items=10)
+    all_items.extend(caixin_items)
+    print(f"    财新: {len(caixin_items)} 条")
+
+    # 辅助源6：36氪（科技商业）
+    print("  获取36氪 RSS...")
+    kr_items = fetch_rss_items('https://36kr.com/feed', '36氪', max_items=10)
+    all_items.extend(kr_items)
+    print(f"    36氪: {len(kr_items)} 条")
+
+    # 兜底源：IT之家（科技新闻，最后备选）
     print("  获取IT之家 RSS...")
-    it_items = fetch_rss_items('https://www.ithome.com/rss/', 'IT之家', max_items=10)
+    it_items = fetch_rss_items('https://www.ithome.com/rss/', 'IT之家', max_items=8)
     all_items.extend(it_items)
     print(f"    IT之家: {len(it_items)} 条")
 
