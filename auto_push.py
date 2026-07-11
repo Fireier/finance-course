@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-GitHub Actions 财商课程每日自动推送脚本 v4
-- 新闻源：36氪RSS（主力） + IT之家RSS（辅助），人民网RSS已停更不再使用
-- 按课程主题关键词过滤新闻，输出最相关的3条
-- 每条新闻带250字摘要，讲清楚关键内容
-- 使用新闻真实发布日期，不虚假标注
+GitHub Actions 财商课程每日自动推送脚本 v5
+- 新闻源：Google News RSS（按主题关键词搜索，确保相关性）+ 36氪 + 财联社 + 华尔街见闻 + IT之家
+- 严格相关性：必须命中主题关键词才推新闻，否则跳过
+- 每条新闻摘要50-100字
+- 每天推送2条新闻
 """
 
-import re, os, sys, json, uuid, base64, urllib.request, urllib.error, html
+import re, os, sys, json, uuid, base64, urllib.request, urllib.error, urllib.parse, html
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from email.utils import parsedate_to_datetime
@@ -65,10 +65,8 @@ FINANCE_KEYWORDS = [
     "证监会", "银保监", "财政部", "统计局", "发改委", "商务部",
     "M2", "社融",
 ]
-# 去掉太短的词（避免误匹配）
 FINANCE_KEYWORDS = [kw for kw in FINANCE_KEYWORDS if len(kw) >= 2]
 
-# 明显非财经内容关键词（排除用）
 NON_FINANCE_PATTERNS = [
     '耳机', '礼盒', '预售', '电动自行车', '测速', '游戏', '动漫',
     '综艺', '电影', '音乐', '明星', '穿搭', '美妆', '护肤', '宠物',
@@ -292,16 +290,32 @@ def fetch_rss_items(url, source_name, max_items=10):
             for item in root.findall('.//item')[:max_items]:
                 title = item.findtext('title', '').strip()
                 title = re.sub(r'<[^>]+>', '', title)
-                # 36氪有些标题以数字+点号开头，去掉
                 title = re.sub(r'^\d+点\d+氪\s*[|｜]\s*', '', title)
                 title = re.sub(r'^\d+[\.\、]\s*', '', title)
 
+                # Google News: title格式为 "文章标题 - 来源名"
+                actual_source = source_name
+                if source_name == 'Google News':
+                    source_elem = item.find('source')
+                    if source_elem is not None and source_elem.text:
+                        actual_source = source_elem.text.strip()
+                        if f' - {actual_source}' in title:
+                            title = title.replace(f' - {actual_source}', '').strip()
+                    elif ' - ' in title:
+                        parts = title.rsplit(' - ', 1)
+                        title = parts[0].strip()
+                        actual_source = parts[1].strip()
+
                 desc = item.findtext('description', '').strip()
-                # 清理HTML和空白
+                # 先反转义HTML实体，再去标签
+                desc = html.unescape(desc)
                 desc = re.sub(r'<[^>]+>', '', desc)
                 desc = re.sub(r'\s+', ' ', desc).strip()
-                # 取前250字作为摘要，讲清楚新闻关键部分
-                desc = desc[:250]
+                # Google News的description常以标题开头，去掉重复部分
+                if source_name == 'Google News' and desc and title and desc.startswith(title[:15]):
+                    desc = desc[len(title[:15]):].strip()
+                # 取前80字作为摘要（50-100字范围）
+                desc = desc[:80]
 
                 pub_date = item.findtext('pubDate', '').strip()
                 date_str, dt = parse_rss_date(pub_date)
@@ -312,7 +326,7 @@ def fetch_rss_items(url, source_name, max_items=10):
                         'desc': desc,
                         'date_str': date_str,
                         'datetime': dt,
-                        'source': source_name,
+                        'source': actual_source,
                     })
     except Exception as e:
         print(f"  {source_name} RSS: {e}")
@@ -322,7 +336,9 @@ def fetch_rss_items(url, source_name, max_items=10):
 def get_finance_news(topic_keywords=None):
     """
     获取与当天课程主题相关的财经新闻。
-    36氪主力 + IT之家辅助，按主题相关度排序取TOP 3。
+    Google News按主题关键词搜索（主力，确保相关性）+ 36氪 + 财联社 + 华尔街见闻 + IT之家
+    严格门槛：必须命中至少一个主题关键词（score >= 3）才推送，否则跳过。
+    只取2条，摘要80字以内。
     """
     if topic_keywords is None:
         topic_keywords = []
@@ -332,23 +348,39 @@ def get_finance_news(topic_keywords=None):
 
     all_items = []
 
-    # 主力源：36氪（科技商业财经，实时更新，有摘要）
+    # 主力源1：Google News RSS（按主题关键词搜索，确保相关性）
+    if topic_keywords:
+        query = ' '.join(topic_keywords[:5])
+        encoded_query = urllib.parse.quote(query)
+        google_url = f'https://news.google.com/rss/search?q={encoded_query}+when:3d&hl=zh-CN&gl=CN&ceid=CN:zh'
+        print(f"  获取 Google News RSS (搜索: {query})...")
+        google_items = fetch_rss_items(google_url, 'Google News', max_items=20)
+        all_items.extend(google_items)
+        print(f"    Google News: {len(google_items)} 条")
+
+    # 辅助源1：36氪
     print("  获取36氪 RSS...")
     kr_items = fetch_rss_items('https://36kr.com/feed', '36氪', max_items=15)
     all_items.extend(kr_items)
     print(f"    36氪: {len(kr_items)} 条")
 
-    # 辅助源：IT之家（科技，当前但非财经）
+    # 辅助源2：财联社电报（RSSHub）
+    print("  获取财联社电报 RSS...")
+    cls_items = fetch_rss_items('https://rsshub.app/cls/telegraph', '财联社', max_items=15)
+    all_items.extend(cls_items)
+    print(f"    财联社: {len(cls_items)} 条")
+
+    # 辅助源3：华尔街见闻（RSSHub）
+    print("  获取华尔街见闻 RSS...")
+    wscn_items = fetch_rss_items('https://rsshub.app/wallstreetcn/live', '华尔街见闻', max_items=15)
+    all_items.extend(wscn_items)
+    print(f"    华尔街见闻: {len(wscn_items)} 条")
+
+    # 辅助源4：IT之家（最后兜底）
     print("  获取IT之家 RSS...")
     it_items = fetch_rss_items('https://www.ithome.com/rss/', 'IT之家', max_items=10)
     all_items.extend(it_items)
     print(f"    IT之家: {len(it_items)} 条")
-
-    # 备用源：人民网财经（可能不更新，但聊胜于无）
-    if len(all_items) < 5:
-        print("  获取人民网财经 RSS（备用）...")
-        rm_items = fetch_rss_items('http://www.people.com.cn/rss/finance.xml', '人民网', max_items=5)
-        all_items.extend(rm_items)
 
     print(f"  共 {len(all_items)} 条候选新闻")
 
@@ -367,23 +399,26 @@ def get_finance_news(topic_keywords=None):
     print(f"  主题关键词: {', '.join(topic_keywords[:8])}" if topic_keywords else "  无主题关键词")
     print("  TOP5 相关度:")
     for score, item in scored[:5]:
-        print(f"    [{score:3d}] {item['title'][:50]}")
+        print(f"    [{score:3d}] {item['source']}: {item['title'][:50]}")
 
-    # 取分数最高的3条
-    # 门槛：如果最高分<=0 且有主题关键词，说明完全无匹配
+    # 严格门槛：必须命中至少一个主题关键词（score >= 3）
     if topic_keywords:
-        top_scores = [s for s, _ in scored[:3]]
-        if max(top_scores) <= 0:
-            print("  ⚠ 新闻与课程主题完全无关，跳过新闻板块")
-            return None
-        # 有效分数 < 1 时（只有泛金融微弱匹配），也跳过
-        if max(top_scores) < 1:
-            print("  ⚠ 新闻相关度过低，跳过新闻板块")
+        top_score = scored[0][0] if scored else 0
+        if top_score < 3:
+            print("  ⚠ 新闻与课程主题无直接关联，跳过新闻板块")
             return None
 
-    # 组装输出（带摘要的格式）
+    # 取分数最高的2条，去重
     selected = []
-    for score, item in scored[:3]:
+    seen_titles = set()
+    for score, item in scored:
+        if len(selected) >= 2:
+            break
+        title_key = item['title'][:20]
+        if title_key in seen_titles:
+            continue
+        seen_titles.add(title_key)
+
         date = item.get('date_str') or now.strftime('%m月%d日')
         src = item['source']
         title = item['title'][:55]
@@ -504,7 +539,7 @@ def generate_push(card, news_items=None):
 
     if news_items and len(news_items) > 0:
         lines.append("📰 今日时事：")
-        for n in news_items[:3]:
+        for n in news_items[:2]:
             lines.append(f"  · {n}")
         lines.append("")
 
@@ -523,7 +558,7 @@ def generate_push(card, news_items=None):
 
 def main():
     print("=" * 50)
-    print("Finance Course Auto Push v4")
+    print("Finance Course Auto Push v5")
     beijing = timezone(timedelta(hours=8))
     print(f"Beijing Time: {datetime.now(beijing).strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
