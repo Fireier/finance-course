@@ -350,7 +350,7 @@ def get_finance_news(topic_keywords=None):
 
     # 主力源1：Google News RSS（按主题关键词搜索，确保相关性）
     if topic_keywords:
-        query = ' '.join(topic_keywords[:5])
+        query = ' OR '.join(topic_keywords[:5])
         encoded_query = urllib.parse.quote(query)
         google_url = f'https://news.google.com/rss/search?q={encoded_query}+when:3d&hl=zh-CN&gl=CN&ceid=CN:zh'
         print(f"  获取 Google News RSS (搜索: {query})...")
